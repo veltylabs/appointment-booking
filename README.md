@@ -1,3 +1,61 @@
 # appointment-booking
 
-Appointment booking and staff scheduling module
+Manages schedulable service configuration, staff work calendars, and client reservations.
+
+## Main entities
+
+- `employee_service_config`: configuration of which services each professional handles (duration, price override).
+- `reservation`: the scheduled appointment (date/time, client, professional, service).
+- `workcalendar_weekly`: weekly work schedules per staff member.
+- `workcalendar_exception`: one-off exceptions (personal holidays, special hours, blocked intervals).
+
+## Documentation
+
+- [SKILL — LLM-friendly summary](docs/SKILL.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Implementation Plan](docs/PLAN.md)
+  - [Stage 1 — Models + FSM](docs/PLAN_STAGE_1_MODELS.md)
+  - [Stage 2 — ORM + Migrations](docs/PLAN_STAGE_2_ORM.md)
+  - [Stage 3 — Service Layer](docs/PLAN_STAGE_3_SERVICE.md)
+  - [Stage 4 — MCP Integration](docs/PLAN_STAGE_4_MCP.md)
+- [Database Diagram](docs/diagrams/database.md)
+- [FSM Diagram](docs/diagrams/fsm.md)
+- [Sequence Diagrams](docs/diagrams/sequence.md)
+
+## Design / decoupling notes
+
+No physical FKs to other modules:
+- `reservation.client_id` references a client (Directory/Clinical) by ID.
+- `reservation.creator_user_id` references an IAM user.
+- `employee_service_config.service_id` references an item from the Catalog module.
+- `staff_id` fields reference the Staff module.
+
+Availability rules (calendar + exceptions) are enforced at the application layer, not via cross-module FKs.
+Reservation status is enforced by an in-code FSM — no `reservation_status` table.
+
+## Service interface
+
+```go
+type SchedulingService interface {
+    // Calendar management
+    UpsertCalendarConfig(ctx context.Context, cfg WorkCalendarConfig) error
+    UpsertWeeklyCalendar(ctx context.Context, cal WorkCalendarWeekly) error
+    AddException(ctx context.Context, exc WorkCalendarException) error
+    RemoveException(ctx context.Context, tenantID, exceptionID string) error
+
+    // Availability
+    ListAvailability(ctx context.Context, tenantID, staffID, configID string, from, to int64) ([]TimeSlot, error)
+
+    // Reservations
+    CreateReservation(ctx context.Context, cmd CreateReservationCmd) (Reservation, error)
+    GetReservation(ctx context.Context, tenantID, id string) (Reservation, error)
+    ListReservationsByStaff(ctx context.Context, tenantID, staffID string, from, to int64) ([]Reservation, error)
+    ListReservationsByClient(ctx context.Context, tenantID, clientID string) ([]Reservation, error)
+    ChangeReservationStatus(ctx context.Context, cmd ChangeStatusCmd) error
+}
+```
+
+This interface depends on injected readers:
+- `DirectoryReader` — validates client existence
+- `StaffReader` — validates staff existence
+- `CatalogReader` — validates service existence
