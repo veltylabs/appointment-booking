@@ -224,6 +224,7 @@ as `HH*100+MM` on the given `date` in the given `tz`.
 5. Call ListAvailability for the target day — verify SlotStartUTC is among the returned free slots.
 6. *Database Transaction Begins*
 7. Build Reservation:
+   - ID = `github.com/tinywasm/unixid.Generate()`
    - Status = StatusPending
    - Snapshots: PriceSnapshot, CurrencySnapshot, DurationMinSnapshot, ServiceIDSnapshot, StaffIDSnapshot from config
    - LocalStringDate / LocalStringTime derived from SlotStartUTC + staff timezone
