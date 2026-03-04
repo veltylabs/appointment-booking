@@ -1,6 +1,14 @@
 # PLAN.md — appointment-booking
 
-Master orchestrator for implementation. Execute stages sequentially.
+Master orchestrator for implementation. **Execute stages strictly in order — do NOT start a stage until all previous stages pass `gotest`.**
+
+---
+
+## ⚠️ Current State (as of restart)
+
+The repository contains only the stub `appointment-booking.go` file. **No stages have been implemented yet.**
+
+Start from **Stage 1**. Before beginning each stage, verify the previous stage compiles and `gotest` passes.
 
 ## Related documents
 - [SKILL — LLM-friendly summary](SKILL.md)
@@ -49,6 +57,8 @@ Master orchestrator for implementation. Execute stages sequentially.
 - [x] `docs/diagrams/sequence.md` — Sequence diagrams: ListAvailability, CreateReservation, ChangeReservationStatus, ExpirePendingReservations
 
 ## Stages
+
+> Execute strictly in order. Mark a stage `[x]` only after `gotest` passes for that stage.
 
 - [ ] [Stage 1 — Models + FSM](PLAN_STAGE_1_MODELS.md)
 - [ ] [Stage 2 — ORM + Migrations](PLAN_STAGE_2_ORM.md)
