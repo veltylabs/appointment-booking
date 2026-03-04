@@ -230,11 +230,11 @@ as `HH*100+MM` on the given `date` in the given `tz`.
    - LocalStringDate / LocalStringTime derived from SlotStartUTC + staff timezone
    - RescheduledFromID if provided
 8. If RescheduledFromID is set, within the SAME transaction:
-   a. Load original reservation via RES.GetReservation(tenantID, rescheduledFromID).
-   b. Call FSM.Transition(original.Status, EventReschedule) — error if invalid.
-   c. Call RES.UpdateReservationStatus(id, RESCHEDULED, actorID, now, revision).
-   Note: do NOT route through the public ChangeReservationStatus() method — it would open
-   a separate operation outside the current transaction context.
+   a. Load original reservation by calling the repository helper `GetReservation` (defined in `repository.go`) directly on the `db` field, passing the transaction executor: `GetReservationTx(tx, tenantID, rescheduledFromID)`.
+      **Note:** `GetReservation` and `UpdateReservationStatus` repository functions MUST accept an `orm.TxExecutor` variant (e.g., `GetReservationTx(tx, ...)` / `UpdateReservationStatusTx(tx, ...)`) so they can be called within an active transaction. Add these `Tx`-suffixed variants to `repository.go`.
+   b. Call `FSM.Transition(original.Status, EventReschedule)` — return error if invalid.
+   c. Call `UpdateReservationStatusTx(tx, original.ID, StatusRescheduled, actorID, now, original.Revision)` to mark it as RESCHEDULED.
+   **Do NOT** route through the public `ChangeReservationStatus()` method — it would start a new, independent transaction outside the current one.
 9. Insert Reservation. If a duplicate slot was concurrently booked (unique constraint violation) → rollback and return ErrSlotTaken.
 10. *Database Transaction Commits*.
 11. If pub != nil: pub.Publish(ctx, EventReservationCreated, newReservation).
@@ -283,20 +283,29 @@ Called by an external scheduler (via MCP tool `expire_pending_reservations`). In
 
 Since `service.go` contains pure logic (`ListAvailability`) that might be executed directly in WASM (frontend offline mode or optimistic UI) or in the Backend, implement the **WASM/Stlib Dual Testing Pattern**.
 
-- `service_front_test.go` (`//go:build wasm`) — tests pure FSM logic and the `ListAvailability` algorithm. Uses mock implementations only for `StaffReader`, `CatalogReader`, `DirectoryReader`, and `EventPublisher` (the four external-module interfaces). DB operations are exercised only in the backend test.
-- `service_back_test.go` (`//go:build !wasm`) — full integration tests. Uses a real `tinywasm/sqlite` in-memory database (same setup as Stage 2's `model_orm_back_test.go`). Runs auto-migration at test startup so the real ORM + SQLite stack is exercised end-to-end. Mocks only the three external-module interfaces and `EventPublisher`.
-- Both files MUST call a shared test runner `RunServiceTests(t)` defined in `setup_test.go`.
+- `service_front_test.go` (`//go:build wasm`) — tests **pure logic only** (FSM transitions and the `ListAvailability` algorithm with completely in-memory data). Uses mock implementations for `StaffReader`, `CatalogReader`, `DirectoryReader`, and `EventPublisher`. **No DB calls.** Both WASM and backend call the shared runner `RunServicePureTests(t)` defined in `setup_test.go`.
+- `service_back_test.go` (`//go:build !wasm`) — **full integration tests**. Uses a real `tinywasm/sqlite` in-memory database (same setup as Stage 2's `model_orm_back_test.go`). Runs auto-migration at test startup so the real ORM + SQLite stack is exercised end-to-end. Mocks only the four external interfaces (`StaffReader`, `CatalogReader`, `DirectoryReader`, `EventPublisher`). Calls `RunServicePureTests(t)` AND its own `RunServiceIntegrationTests(t)` — the integration runner is defined in this file (not in `setup_test.go`) so it compiles only on `!wasm`.
+
+**Two shared runners:**
+
+| Runner | Defined in | Called by |
+|---|---|---|
+| `RunServicePureTests(t)` | `setup_test.go` (no build tag) | both `service_front_test.go` and `service_back_test.go` |
+| `RunServiceIntegrationTests(t)` | `service_back_test.go` (`!wasm`) | only `service_back_test.go` |
 
 **Why real SQLite in backend tests (not mocked stores)?**
 `tinywasm/sqlite` is already configured with `tinywasm/orm` by default. Using a real in-memory database catches real bugs in ORM query generation, constraint enforcement (e.g., unique slot constraint), and optimistic concurrency — scenarios that mocked stores silently paper over.
 
-Test cases:
-- `ListAvailability` — weekly only, with HOLIDAY exception, with SPECIAL_HOURS, with BLOCKED interval, slots blocked by existing reservation, break boundary edge case (slot touching break_start must be excluded), DST/timezone conversion
+**`RunServicePureTests` test cases** (pure logic, no DB, runs in WASM too):
+- `ListAvailability` — weekly only, with HOLIDAY exception, with SPECIAL_HOURS, with BLOCKED interval, slots blocked by existing reservation in a pre-populated mock, break boundary edge case (slot touching break_start must be excluded), DST/timezone conversion
+- FSM: all valid transitions, all invalid transitions, all terminal states reject all events
+
+**`RunServiceIntegrationTests` test cases** (backend only, real SQLite in-memory):
 - `UpsertCalendarConfig` — create new, update existing timezone
-- `UpsertWeeklyCalendar` — happy path, ErrCalendarConfigNotFound when no config exists for staff
-- `CreateReservation` — happy path (EventReservationCreated published), slot not available, invalid client, invalid staff, invalid service, reschedule flow (EventReservationCreated + EventReservationRescheduled published), nil publisher does not panic
-- `ChangeReservationStatus` — all valid transitions + correct domain event published, all invalid transitions, concurrent revision conflict (ErrConflict propagated), PaymentID only applied on CONFIRM
-- `ExpirePendingReservations` — expires only PENDING before threshold, ignores CONFIRMED, EventReservationExpired published per reservation
+- `UpsertWeeklyCalendar` — happy path, `ErrCalendarConfigNotFound` when no config exists for staff
+- `CreateReservation` — happy path (`EventReservationCreated` published), slot not available, invalid client, invalid staff, invalid service, reschedule flow (`EventReservationCreated` + `EventReservationRescheduled` published), nil publisher does not panic
+- `ChangeReservationStatus` — all valid transitions + correct domain event published, all invalid transitions, concurrent revision conflict (`ErrConflict` propagated), `PaymentID` only applied on `CONFIRM`
+- `ExpirePendingReservations` — expires only PENDING before threshold, ignores CONFIRMED, `EventReservationExpired` published per reservation
 
 ---
 
