@@ -62,5 +62,5 @@ Start from **Stage 1**. Before beginning each stage, verify the previous stage c
 
 - [ ] [Stage 1 — Models + FSM](PLAN_STAGE_1_MODELS.md)
 - [ ] [Stage 2 — ORM + Migrations](PLAN_STAGE_2_ORM.md)
-- [ ] [Stage 3 — Service Layer](PLAN_STAGE_3_SERVICE.md)
-- [ ] [Stage 4 — MCP Integration](PLAN_STAGE_4_MCP.md)
+- [x] [Stage 3 — Service Layer](PLAN_STAGE_3_SERVICE.md)
+- [x] [Stage 4 — MCP Integration](PLAN_STAGE_4_MCP.md)
