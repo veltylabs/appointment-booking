@@ -1,8 +1,9 @@
 //go:build !wasm
 
-package appointmentbooking
+package tests
 
 import (
+	ab "github.com/veltylabs/appointment-booking"
 	"context"
 	"testing"
     "fmt"
@@ -11,28 +12,28 @@ import (
 )
 
 type mockService struct {
-	SchedulingService
+	ab.SchedulingService
 	errToReturn error
 }
 
-func (m *mockService) UpsertWeeklyCalendar(ctx context.Context, cal WorkCalendarWeekly) error {
+func (m *mockService) UpsertWeeklyCalendar(ctx context.Context, cal ab.WorkCalendarWeekly) error {
 	if cal.StaffID == "" {
-		return ErrCalendarConfigNotFound
+		return ab.ErrCalendarConfigNotFound
 	}
 	return m.errToReturn
 }
 
-func (m *mockService) CreateReservation(ctx context.Context, cmd CreateReservationCmd) (Reservation, error) {
+func (m *mockService) CreateReservation(ctx context.Context, cmd ab.CreateReservationCmd) (ab.Reservation, error) {
 	if cmd.SlotStartUTC == 1712000000 {
-		return Reservation{}, ErrSlotTaken
+		return ab.Reservation{}, ab.ErrSlotTaken
 	}
-	return Reservation{ID: "new-id"}, m.errToReturn
+	return ab.Reservation{ID: "new-id"}, m.errToReturn
 }
 
 func TestMCPHandlers(t *testing.T) {
 	s := mcp.NewMCPServer("test", "1.0")
 	svc := &mockService{}
-	Register(s, svc)
+	ab.Register(s, svc)
 
 	client, err := mcp.NewInProcessClient(s)
 	if err != nil {
@@ -51,7 +52,7 @@ func TestMCPHandlers(t *testing.T) {
 				Name: "upsert_weekly_calendar",
 				Arguments: map[string]any{
 					"tenant_id":    "t1",
-					"staff_id":     "", // empty -> triggers ErrCalendarConfigNotFound
+					"staff_id":     "", // empty -> triggers ab.ErrCalendarConfigNotFound
 					"day_of_week":  1,
 					"work_start":   540,
 					"work_finish":  1020,
@@ -85,7 +86,7 @@ func TestMCPHandlers(t *testing.T) {
 					"client_id":                  "c1",
 					"creator_user_id":            "u1",
 					"employee_service_config_id": "esc1",
-					"slot_start_utc":             int64(1712000000), // triggers ErrSlotTaken
+					"slot_start_utc":             int64(1712000000), // triggers ab.ErrSlotTaken
 				},
 			},
 		}
