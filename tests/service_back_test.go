@@ -33,6 +33,8 @@ func TestService_Back(t *testing.T) {
 	// Run pure tests first on sqlite
 	t.Run("PureTests", func(t *testing.T) {
 		RunServicePureTests(t, svc, repo, db)
+		RunServiceValidationTests(t, svc, repo, db, deps)
+		RunAvailabilityTests(t, svc, repo, db)
 	})
 
 	// Run integration/concurrency specific tests
