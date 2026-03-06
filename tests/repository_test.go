@@ -1,24 +1,25 @@
 //go:build !wasm
 
-package appointmentbooking
+package tests
 
 import (
+	ab "github.com/veltylabs/appointment-booking"
 	"errors"
 	"testing"
 
 	"github.com/tinywasm/sqlite"
 )
 
-func newTestRepo(t *testing.T) *Repository {
+func newTestRepo(t *testing.T) *ab.Repository {
 	t.Helper()
 	db, err := sqlite.Open(":memory:")
 	if err != nil {
 		t.Fatalf("sqlite.Open: %v", err)
 	}
 	t.Cleanup(func() { db.Close() })
-	repo, err := NewRepository(db)
+	repo, err := ab.NewRepository(db)
 	if err != nil {
-		t.Fatalf("NewRepository: %v", err)
+		t.Fatalf("ab.NewRepository: %v", err)
 	}
 	return repo
 }
@@ -26,7 +27,7 @@ func newTestRepo(t *testing.T) *Repository {
 func TestInsertGet_EmployeeServiceConfig(t *testing.T) {
 	repo := newTestRepo(t)
 
-	cfg := EmployeeServiceConfig{
+	cfg := ab.EmployeeServiceConfig{
 		TenantID:    "t1",
 		StaffID:     "s1",
 		ServiceID:   "srv1",
@@ -61,10 +62,10 @@ func TestInsertGet_EmployeeServiceConfig(t *testing.T) {
 func TestListEmployeeServiceConfigByStaff(t *testing.T) {
 	repo := newTestRepo(t)
 
-	repo.InsertEmployeeServiceConfig(EmployeeServiceConfig{TenantID: "t1", StaffID: "s1", ServiceID: "srv1"})
-	repo.InsertEmployeeServiceConfig(EmployeeServiceConfig{TenantID: "t1", StaffID: "s1", ServiceID: "srv2"})
-	repo.InsertEmployeeServiceConfig(EmployeeServiceConfig{TenantID: "t1", StaffID: "s2", ServiceID: "srv3"})
-	repo.InsertEmployeeServiceConfig(EmployeeServiceConfig{TenantID: "t2", StaffID: "s1", ServiceID: "srv1"})
+	repo.InsertEmployeeServiceConfig(ab.EmployeeServiceConfig{TenantID: "t1", StaffID: "s1", ServiceID: "srv1"})
+	repo.InsertEmployeeServiceConfig(ab.EmployeeServiceConfig{TenantID: "t1", StaffID: "s1", ServiceID: "srv2"})
+	repo.InsertEmployeeServiceConfig(ab.EmployeeServiceConfig{TenantID: "t1", StaffID: "s2", ServiceID: "srv3"})
+	repo.InsertEmployeeServiceConfig(ab.EmployeeServiceConfig{TenantID: "t2", StaffID: "s1", ServiceID: "srv1"})
 
 	cfgs, err := repo.ListEmployeeServiceConfigByStaff("t1", "s1")
 	if err != nil {
@@ -80,8 +81,8 @@ func TestGetEmployeeServiceConfig_NotFound(t *testing.T) {
 	repo := newTestRepo(t)
 
 	_, err := repo.GetEmployeeServiceConfig("non-existent")
-	if !errors.Is(err, ErrNotFound) {
-		t.Fatalf("Expected ErrNotFound, got %v", err)
+	if !errors.Is(err, ab.ErrNotFound) {
+		t.Fatalf("Expected ab.ErrNotFound, got %v", err)
 	}
 }
 
@@ -89,7 +90,7 @@ func TestUpsertCalendarConfig_CreateAndUpdate(t *testing.T) {
 	repo := newTestRepo(t)
 
 	// Create
-	cfg1 := WorkCalendarConfig{
+	cfg1 := ab.WorkCalendarConfig{
 		TenantID: "t1",
 		StaffID:  "s1",
 		Timezone: "America/Santiago",
@@ -108,7 +109,7 @@ func TestUpsertCalendarConfig_CreateAndUpdate(t *testing.T) {
 	}
 
 	// Update
-	cfg2 := WorkCalendarConfig{
+	cfg2 := ab.WorkCalendarConfig{
 		TenantID: "t1",
 		StaffID:  "s1",
 		Timezone: "America/New_York",
@@ -134,8 +135,8 @@ func TestGetCalendarConfig_NotFound(t *testing.T) {
 	repo := newTestRepo(t)
 
 	_, err := repo.GetCalendarConfig("t1", "s1")
-	if !errors.Is(err, ErrNotFound) {
-		t.Fatalf("Expected ErrNotFound, got %v", err)
+	if !errors.Is(err, ab.ErrNotFound) {
+		t.Fatalf("Expected ab.ErrNotFound, got %v", err)
 	}
 }
 
@@ -143,7 +144,7 @@ func TestUpsertWeeklyCalendar_CreateAndUpdate(t *testing.T) {
 	repo := newTestRepo(t)
 
 	// Create
-	cal1 := WorkCalendarWeekly{
+	cal1 := ab.WorkCalendarWeekly{
 		TenantID:  "t1",
 		StaffID:   "s1",
 		DayOfWeek: 1, // Monday
@@ -164,7 +165,7 @@ func TestUpsertWeeklyCalendar_CreateAndUpdate(t *testing.T) {
 	originalID := cals[0].ID
 
 	// Update
-	cal2 := WorkCalendarWeekly{
+	cal2 := ab.WorkCalendarWeekly{
 		TenantID:  "t1",
 		StaffID:   "s1",
 		DayOfWeek: 1, // Monday
@@ -190,10 +191,10 @@ func TestUpsertWeeklyCalendar_CreateAndUpdate(t *testing.T) {
 func TestInsertGet_Reservation(t *testing.T) {
 	repo := newTestRepo(t)
 
-	res := Reservation{
+	res := ab.Reservation{
 		TenantID: "t1",
 		ClientID: "c1",
-		Status:   StatusPending,
+		Status:   ab.StatusPending,
 	}
 
 	err := repo.InsertReservation(&res)
@@ -212,7 +213,7 @@ func TestInsertGet_Reservation(t *testing.T) {
 		t.Fatalf("GetReservation failed: %v", err)
 	}
 
-	if got.TenantID != "t1" || got.ClientID != "c1" || got.Status != StatusPending || got.Revision != 0 {
+	if got.TenantID != "t1" || got.ClientID != "c1" || got.Status != ab.StatusPending || got.Revision != 0 {
 		t.Fatalf("Got unexpected reservation: %+v", got)
 	}
 }
@@ -220,10 +221,10 @@ func TestInsertGet_Reservation(t *testing.T) {
 func TestListReservationsByStaff(t *testing.T) {
 	repo := newTestRepo(t)
 
-	repo.InsertReservation(&Reservation{ID: "t1", TenantID: "t1", StaffIDSnapshot: "s1", ReservationDate: 100})
-	repo.InsertReservation(&Reservation{ID: "t2", TenantID: "t1", StaffIDSnapshot: "s1", ReservationDate: 200})
-	repo.InsertReservation(&Reservation{ID: "t3", TenantID: "t1", StaffIDSnapshot: "s1", ReservationDate: 300})
-	repo.InsertReservation(&Reservation{ID: "t4", TenantID: "t1", StaffIDSnapshot: "s2", ReservationDate: 200})
+	repo.InsertReservation(&ab.Reservation{ID: "t1", TenantID: "t1", StaffIDSnapshot: "s1", ReservationDate: 100})
+	repo.InsertReservation(&ab.Reservation{ID: "t2", TenantID: "t1", StaffIDSnapshot: "s1", ReservationDate: 200})
+	repo.InsertReservation(&ab.Reservation{ID: "t3", TenantID: "t1", StaffIDSnapshot: "s1", ReservationDate: 300})
+	repo.InsertReservation(&ab.Reservation{ID: "t4", TenantID: "t1", StaffIDSnapshot: "s2", ReservationDate: 200})
 
 	res, err := repo.ListReservationsByStaff("t1", "s1", 150, 250)
 	if err != nil {
@@ -238,17 +239,17 @@ func TestListReservationsByStaff(t *testing.T) {
 func TestUpdateReservationStatus_OK(t *testing.T) {
 	repo := newTestRepo(t)
 
-	repo.InsertReservation(&Reservation{TenantID: "t1", ClientID: "c1", Status: StatusPending})
+	repo.InsertReservation(&ab.Reservation{TenantID: "t1", ClientID: "c1", Status: ab.StatusPending})
 	resList, _ := repo.ListReservationsByClient("t1", "c1")
 	id := resList[0].ID
 
-	err := repo.UpdateReservationStatus(id, StatusConfirmed, "u1", 12345, 0)
+	err := repo.UpdateReservationStatus(id, ab.StatusConfirmed, "u1", 12345, 0)
 	if err != nil {
 		t.Fatalf("UpdateReservationStatus failed: %v", err)
 	}
 
 	got, _ := repo.GetReservation(id)
-	if got.Status != StatusConfirmed || got.UpdatedBy != "u1" || got.UpdatedAt != 12345 || got.Revision != 1 {
+	if got.Status != ab.StatusConfirmed || got.UpdatedBy != "u1" || got.UpdatedAt != 12345 || got.Revision != 1 {
 		t.Fatalf("Got unexpected reservation state: %+v", got)
 	}
 }
@@ -256,21 +257,21 @@ func TestUpdateReservationStatus_OK(t *testing.T) {
 func TestUpdateReservationStatus_Conflict(t *testing.T) {
 	repo := newTestRepo(t)
 
-	repo.InsertReservation(&Reservation{TenantID: "t1", ClientID: "c1", Status: StatusPending})
+	repo.InsertReservation(&ab.Reservation{TenantID: "t1", ClientID: "c1", Status: ab.StatusPending})
 	resList, _ := repo.ListReservationsByClient("t1", "c1")
 	id := resList[0].ID
 
 	// Provide wrong revision
-	err := repo.UpdateReservationStatus(id, StatusConfirmed, "u1", 12345, 99)
-	if !errors.Is(err, ErrConflict) {
-		t.Fatalf("Expected ErrConflict, got %v", err)
+	err := repo.UpdateReservationStatus(id, ab.StatusConfirmed, "u1", 12345, 99)
+	if !errors.Is(err, ab.ErrConflict) {
+		t.Fatalf("Expected ab.ErrConflict, got %v", err)
 	}
 }
 
 func TestInsertListDeleteException(t *testing.T) {
 	repo := newTestRepo(t)
 
-	exc := WorkCalendarException{
+	exc := ab.WorkCalendarException{
 		TenantID:     "t1",
 		StaffID:      "s1",
 		SpecificDate: 100,

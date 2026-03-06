@@ -1,8 +1,9 @@
 //go:build !wasm
 
-package appointmentbooking
+package tests
 
 import (
+	ab "github.com/veltylabs/appointment-booking"
 	"context"
 	"errors"
 	"testing"
@@ -18,19 +19,15 @@ func TestService_Back(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo, err := NewRepository(db)
+	repo, err := ab.NewRepository(db)
 	if err != nil {
-		t.Fatalf("NewRepository: %v", err)
+		t.Fatalf("ab.NewRepository: %v", err)
 	}
 
 	deps := SetupDependencies()
-	svc := &schedulingService{
-		db:        db,
-		repo:      repo,
-		staff:     deps.Staff,
-		catalog:   deps.Catalog,
-		directory: deps.Directory,
-		pub:       deps.Publisher,
+	svc, err := ab.New(db, deps)
+	if err != nil {
+		t.Fatalf("ab.New: %v", err)
 	}
 
 	// Run pure tests first on sqlite
@@ -43,7 +40,7 @@ func TestService_Back(t *testing.T) {
 		ctx := context.Background()
 
 		// Setup config
-		cfg := EmployeeServiceConfig{
+		cfg := ab.EmployeeServiceConfig{
 			TenantID:      "t99",
 			StaffID:       "s99",
 			ServiceID:     "srv99",
@@ -56,13 +53,13 @@ func TestService_Back(t *testing.T) {
 		cfgID := cfgs[0].ID
 
 		s := svc
-		s.UpsertCalendarConfig(ctx, WorkCalendarConfig{
+		s.UpsertCalendarConfig(ctx, ab.WorkCalendarConfig{
 			TenantID: "t99",
 			StaffID:  "s99",
 			Timezone: "UTC",
 			IsActive: true,
 		})
-		s.UpsertWeeklyCalendar(ctx, WorkCalendarWeekly{
+		s.UpsertWeeklyCalendar(ctx, ab.WorkCalendarWeekly{
 			TenantID:  "t99",
 			StaffID:   "s99",
 			DayOfWeek: 4, // Thursday
@@ -74,7 +71,7 @@ func TestService_Back(t *testing.T) {
 		targetDay := time.Date(2025, 1, 9, 0, 0, 0, 0, time.UTC) // Jan 9, 2025 is Thursday
 		slotStartUTC := targetDay.Unix() + 540*60
 
-		res, err := s.CreateReservation(ctx, CreateReservationCmd{
+		res, err := s.CreateReservation(ctx, ab.CreateReservationCmd{
 			TenantID:                "t99",
 			ClientID:                "c1",
 			CreatorUserID:           "u1",
@@ -86,10 +83,10 @@ func TestService_Back(t *testing.T) {
 		}
 
 		// Test Conflict / Revision System
-		err1 := s.ChangeReservationStatus(ctx, ChangeStatusCmd{
+		err1 := s.ChangeReservationStatus(ctx, ab.ChangeStatusCmd{
 			TenantID:  "t99",
 			ID:        res.ID,
-			Event:     EventConfirm,
+			Event:     ab.EventConfirm,
 			ActorID:   "u1",
 			PaymentID: "pay1",
 			Revision:  0, // Correct revision
@@ -98,15 +95,15 @@ func TestService_Back(t *testing.T) {
 			t.Fatalf("First change should succeed, got: %v", err1)
 		}
 
-		err2 := s.ChangeReservationStatus(ctx, ChangeStatusCmd{
+		err2 := s.ChangeReservationStatus(ctx, ab.ChangeStatusCmd{
 			TenantID: "t99",
 			ID:       res.ID,
-			Event:    EventCancel,
+			Event:    ab.EventCancel,
 			ActorID:  "u1",
 			Revision: 0, // Wrong revision, should be 1
 		})
-		if !errors.Is(err2, ErrConflict) {
-			t.Fatalf("Second change should fail with ErrConflict, got: %v", err2)
+		if !errors.Is(err2, ab.ErrConflict) {
+			t.Fatalf("Second change should fail with ab.ErrConflict, got: %v", err2)
 		}
 
 		// Verify event publisher received events
@@ -114,18 +111,18 @@ func TestService_Back(t *testing.T) {
 		foundCreated := false
 		foundConfirmed := false
 		for _, e := range pub.PublishedEvents {
-			if e == EventReservationCreated {
+			if e == ab.EventReservationCreated {
 				foundCreated = true
 			}
-			if e == EventReservationConfirmed {
+			if e == ab.EventReservationConfirmed {
 				foundConfirmed = true
 			}
 		}
 		if !foundCreated {
-			t.Fatalf("expected EventReservationCreated to be published")
+			t.Fatalf("expected ab.EventReservationCreated to be published")
 		}
 		if !foundConfirmed {
-			t.Fatalf("expected EventReservationConfirmed to be published")
+			t.Fatalf("expected ab.EventReservationConfirmed to be published")
 		}
 	})
 }

@@ -1,6 +1,7 @@
-package appointmentbooking
+package tests
 
 import (
+	ab "github.com/veltylabs/appointment-booking"
 	"context"
 	"testing"
 	"time"
@@ -45,8 +46,8 @@ func (m *MockEventPublisher) Publish(ctx context.Context, event string, payload 
 	return m.Err
 }
 
-func SetupDependencies() Deps {
-	return Deps{
+func SetupDependencies() ab.Deps {
+	return ab.Deps{
 		Staff:     &MockStaffReader{Exists: true},
 		Catalog:   &MockCatalogReader{Exists: true},
 		Directory: &MockDirectoryReader{Exists: true},
@@ -56,12 +57,12 @@ func SetupDependencies() Deps {
 
 // RunServicePureTests tests generic logic of the service (Availability, FSM changes, CreateReservation)
 // without depending on standard lib SQLite, so it can run on WASM.
-func RunServicePureTests(t *testing.T, s SchedulingService, repo *Repository, db *orm.DB) {
+func RunServicePureTests(t *testing.T, s ab.SchedulingService, repo *ab.Repository, db *orm.DB) {
 	ctx := context.Background()
 
 	t.Run("CreateReservation_Success", func(t *testing.T) {
-		// Insert active EmployeeServiceConfig
-		cfg := EmployeeServiceConfig{
+		// Insert active ab.EmployeeServiceConfig
+		cfg := ab.EmployeeServiceConfig{
 			TenantID:      "t1",
 			StaffID:       "s1",
 			ServiceID:     "srv1",
@@ -78,7 +79,7 @@ func RunServicePureTests(t *testing.T, s SchedulingService, repo *Repository, db
 		cfgID := cfgs[0].ID
 
 		// Create Calendar Config
-		if err := s.UpsertCalendarConfig(ctx, WorkCalendarConfig{
+		if err := s.UpsertCalendarConfig(ctx, ab.WorkCalendarConfig{
 			TenantID: "t1",
 			StaffID:  "s1",
 			Timezone: "UTC",
@@ -88,7 +89,7 @@ func RunServicePureTests(t *testing.T, s SchedulingService, repo *Repository, db
 		}
 
 		// Weekly calendar
-		if err := s.UpsertWeeklyCalendar(ctx, WorkCalendarWeekly{
+		if err := s.UpsertWeeklyCalendar(ctx, ab.WorkCalendarWeekly{
 			TenantID:  "t1",
 			StaffID:   "s1",
 			DayOfWeek: 1, // Monday
@@ -111,7 +112,7 @@ func RunServicePureTests(t *testing.T, s SchedulingService, repo *Repository, db
 			t.Fatalf("expected some slots")
 		}
 
-		cmd := CreateReservationCmd{
+		cmd := ab.CreateReservationCmd{
 			TenantID:                "t1",
 			ClientID:                "c1",
 			CreatorUserID:           "u1",
@@ -124,7 +125,7 @@ func RunServicePureTests(t *testing.T, s SchedulingService, repo *Repository, db
 			t.Fatalf("CreateReservation: %v", err)
 		}
 
-		if res.Status != StatusPending {
+		if res.Status != ab.StatusPending {
 			t.Fatalf("expected status pending, got %s", res.Status)
 		}
 		if res.Notes != "Test note" {
@@ -132,10 +133,10 @@ func RunServicePureTests(t *testing.T, s SchedulingService, repo *Repository, db
 		}
 
 		// ChangeStatus
-		err = s.ChangeReservationStatus(ctx, ChangeStatusCmd{
+		err = s.ChangeReservationStatus(ctx, ab.ChangeStatusCmd{
 			TenantID: "t1",
 			ID:       res.ID,
-			Event:    EventConfirm,
+			Event:    ab.EventConfirm,
 			ActorID:  "u1",
 			Revision: 0,
 		})
@@ -147,15 +148,15 @@ func RunServicePureTests(t *testing.T, s SchedulingService, repo *Repository, db
 		if err != nil {
 			t.Fatalf("GetReservation: %v", err)
 		}
-		if got.Status != StatusConfirmed {
+		if got.Status != ab.StatusConfirmed {
 			t.Fatalf("expected status confirmed, got %s", got.Status)
 		}
 
 		// ChangeStatus (NoShow)
-		err = s.ChangeReservationStatus(ctx, ChangeStatusCmd{
+		err = s.ChangeReservationStatus(ctx, ab.ChangeStatusCmd{
 			TenantID: "t1",
 			ID:       res.ID,
-			Event:    EventNoShow,
+			Event:    ab.EventNoShow,
 			ActorID:  "u1",
 			Revision: 1,
 		})
@@ -165,8 +166,8 @@ func RunServicePureTests(t *testing.T, s SchedulingService, repo *Repository, db
 	})
 
 	t.Run("CreateReservation_SlotTaken", func(t *testing.T) {
-		// Insert active EmployeeServiceConfig
-		cfg := EmployeeServiceConfig{
+		// Insert active ab.EmployeeServiceConfig
+		cfg := ab.EmployeeServiceConfig{
 			TenantID:      "t2",
 			StaffID:       "s2",
 			ServiceID:     "srv2",
@@ -182,14 +183,14 @@ func RunServicePureTests(t *testing.T, s SchedulingService, repo *Repository, db
 		cfgID := cfgs[0].ID
 
 		// Create Calendar Config
-		s.UpsertCalendarConfig(ctx, WorkCalendarConfig{
+		s.UpsertCalendarConfig(ctx, ab.WorkCalendarConfig{
 			TenantID: "t2",
 			StaffID:  "s2",
 			Timezone: "UTC",
 			IsActive: true,
 		})
 
-		s.UpsertWeeklyCalendar(ctx, WorkCalendarWeekly{
+		s.UpsertWeeklyCalendar(ctx, ab.WorkCalendarWeekly{
 			TenantID:  "t2",
 			StaffID:   "s2",
 			DayOfWeek: 2, // Tuesday
@@ -201,7 +202,7 @@ func RunServicePureTests(t *testing.T, s SchedulingService, repo *Repository, db
 		targetDay := time.Date(2025, 1, 7, 0, 0, 0, 0, time.UTC) // Jan 7, 2025 is Tuesday
 		slotStartUTC := targetDay.Unix() + 540*60 // 09:00 UTC
 
-		cmd := CreateReservationCmd{
+		cmd := ab.CreateReservationCmd{
 			TenantID:                "t2",
 			ClientID:                "c1",
 			CreatorUserID:           "u1",
@@ -216,13 +217,13 @@ func RunServicePureTests(t *testing.T, s SchedulingService, repo *Repository, db
 
 		// Second reservation on same slot
 		_, err = s.CreateReservation(ctx, cmd)
-		if err != ErrSlotTaken {
-			t.Fatalf("expected ErrSlotTaken, got: %v", err)
+		if err != ab.ErrSlotTaken {
+			t.Fatalf("expected ab.ErrSlotTaken, got: %v", err)
 		}
 	})
 
 	t.Run("ExpirePendingReservations", func(t *testing.T) {
-		cfg := EmployeeServiceConfig{
+		cfg := ab.EmployeeServiceConfig{
 			TenantID:    "t3",
 			StaffID:     "s3",
 			ServiceID:   "srv3",
@@ -233,14 +234,14 @@ func RunServicePureTests(t *testing.T, s SchedulingService, repo *Repository, db
 		cfgs, _ := repo.ListEmployeeServiceConfigByStaff("t3", "s3")
 		cfgID := cfgs[0].ID
 
-		s.UpsertCalendarConfig(ctx, WorkCalendarConfig{
+		s.UpsertCalendarConfig(ctx, ab.WorkCalendarConfig{
 			TenantID: "t3",
 			StaffID:  "s3",
 			Timezone: "UTC",
 			IsActive: true,
 		})
 
-		s.UpsertWeeklyCalendar(ctx, WorkCalendarWeekly{
+		s.UpsertWeeklyCalendar(ctx, ab.WorkCalendarWeekly{
 			TenantID:  "t3",
 			StaffID:   "s3",
 			DayOfWeek: 3, // Wednesday
@@ -252,7 +253,7 @@ func RunServicePureTests(t *testing.T, s SchedulingService, repo *Repository, db
 		targetDay := time.Date(2025, 1, 8, 0, 0, 0, 0, time.UTC) // Jan 8, 2025 is Wednesday
 		slotStartUTC := targetDay.Unix() + 540*60 // 09:00 UTC
 
-		cmd := CreateReservationCmd{
+		cmd := ab.CreateReservationCmd{
 			TenantID:                "t3",
 			ClientID:                "c1",
 			CreatorUserID:           "u1",
@@ -275,7 +276,7 @@ func RunServicePureTests(t *testing.T, s SchedulingService, repo *Repository, db
 		}
 
 		got, _ := s.GetReservation(ctx, "t3", res.ID)
-		if got.Status != StatusExpired {
+		if got.Status != ab.StatusExpired {
 			t.Fatalf("expected expired status, got %s", got.Status)
 		}
 	})

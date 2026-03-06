@@ -1,5 +1,3 @@
-//go:build !wasm
-
 package appointmentbooking
 
 // EmployeeServiceConfig maps per-staff-per-service durations and overrides.
