@@ -3,6 +3,7 @@
 package appointmentbooking
 
 import (
+	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/orm"
 )
 
@@ -10,33 +11,23 @@ func (m *EmployeeServiceConfig) TableName() string {
 	return "employee_service_config"
 }
 
-func (m *EmployeeServiceConfig) Schema() []orm.Field {
-	return []orm.Field{
-		{Name: "id", Type: orm.TypeText, Constraints: orm.ConstraintPK},
-		{Name: "tenant_id", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "staff_id", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "service_id", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "duration_min", Type: orm.TypeInt64, Constraints: orm.ConstraintNone},
-		{Name: "buffer_min", Type: orm.TypeInt64, Constraints: orm.ConstraintNone},
-		{Name: "price_override", Type: orm.TypeFloat64, Constraints: orm.ConstraintNone},
-		{Name: "payment_required", Type: orm.TypeBool, Constraints: orm.ConstraintNone},
-		{Name: "is_active", Type: orm.TypeBool, Constraints: orm.ConstraintNone},
-	}
+func (m *EmployeeServiceConfig) FormName() string {
+	return "employee_service_config"
 }
 
-func (m *EmployeeServiceConfig) Values() []any {
-	return []any{
-		m.ID,
-		m.TenantID,
-		m.StaffID,
-		m.ServiceID,
-		m.DurationMin,
-		m.BufferMin,
-		m.PriceOverride,
-		m.PaymentRequired,
-		m.IsActive,
+var _schemaEmployeeServiceConfig = []fmt.Field{
+		{Name: "id", Type: fmt.FieldText, PK: true},
+		{Name: "tenant_id", Type: fmt.FieldText},
+		{Name: "staff_id", Type: fmt.FieldText},
+		{Name: "service_id", Type: fmt.FieldText},
+		{Name: "duration_min", Type: fmt.FieldInt},
+		{Name: "buffer_min", Type: fmt.FieldInt},
+		{Name: "price_override", Type: fmt.FieldFloat},
+		{Name: "payment_required", Type: fmt.FieldBool},
+		{Name: "is_active", Type: fmt.FieldBool},
 	}
-}
+
+func (m *EmployeeServiceConfig) Schema() []fmt.Field { return _schemaEmployeeServiceConfig }
 
 func (m *EmployeeServiceConfig) Pointers() []any {
 	return []any{
@@ -97,25 +88,19 @@ func (m *WorkCalendarConfig) TableName() string {
 	return "work_calendar_config"
 }
 
-func (m *WorkCalendarConfig) Schema() []orm.Field {
-	return []orm.Field{
-		{Name: "id", Type: orm.TypeText, Constraints: orm.ConstraintPK},
-		{Name: "tenant_id", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "staff_id", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "timezone", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "is_active", Type: orm.TypeBool, Constraints: orm.ConstraintNone},
-	}
+func (m *WorkCalendarConfig) FormName() string {
+	return "work_calendar_config"
 }
 
-func (m *WorkCalendarConfig) Values() []any {
-	return []any{
-		m.ID,
-		m.TenantID,
-		m.StaffID,
-		m.Timezone,
-		m.IsActive,
+var _schemaWorkCalendarConfig = []fmt.Field{
+		{Name: "id", Type: fmt.FieldText, PK: true},
+		{Name: "tenant_id", Type: fmt.FieldText},
+		{Name: "staff_id", Type: fmt.FieldText},
+		{Name: "timezone", Type: fmt.FieldText},
+		{Name: "is_active", Type: fmt.FieldBool},
 	}
-}
+
+func (m *WorkCalendarConfig) Schema() []fmt.Field { return _schemaWorkCalendarConfig }
 
 func (m *WorkCalendarConfig) Pointers() []any {
 	return []any{
@@ -164,33 +149,23 @@ func (m *WorkCalendarWeekly) TableName() string {
 	return "work_calendar_weekly"
 }
 
-func (m *WorkCalendarWeekly) Schema() []orm.Field {
-	return []orm.Field{
-		{Name: "id", Type: orm.TypeText, Constraints: orm.ConstraintPK},
-		{Name: "tenant_id", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "staff_id", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "day_of_week", Type: orm.TypeInt64, Constraints: orm.ConstraintNone},
-		{Name: "work_start", Type: orm.TypeInt64, Constraints: orm.ConstraintNone},
-		{Name: "work_finish", Type: orm.TypeInt64, Constraints: orm.ConstraintNone},
-		{Name: "break_start", Type: orm.TypeInt64, Constraints: orm.ConstraintNone},
-		{Name: "break_finish", Type: orm.TypeInt64, Constraints: orm.ConstraintNone},
-		{Name: "is_active", Type: orm.TypeBool, Constraints: orm.ConstraintNone},
-	}
+func (m *WorkCalendarWeekly) FormName() string {
+	return "work_calendar_weekly"
 }
 
-func (m *WorkCalendarWeekly) Values() []any {
-	return []any{
-		m.ID,
-		m.TenantID,
-		m.StaffID,
-		m.DayOfWeek,
-		m.WorkStart,
-		m.WorkFinish,
-		m.BreakStart,
-		m.BreakFinish,
-		m.IsActive,
+var _schemaWorkCalendarWeekly = []fmt.Field{
+		{Name: "id", Type: fmt.FieldText, PK: true},
+		{Name: "tenant_id", Type: fmt.FieldText},
+		{Name: "staff_id", Type: fmt.FieldText},
+		{Name: "day_of_week", Type: fmt.FieldInt},
+		{Name: "work_start", Type: fmt.FieldInt},
+		{Name: "work_finish", Type: fmt.FieldInt},
+		{Name: "break_start", Type: fmt.FieldInt},
+		{Name: "break_finish", Type: fmt.FieldInt},
+		{Name: "is_active", Type: fmt.FieldBool},
 	}
-}
+
+func (m *WorkCalendarWeekly) Schema() []fmt.Field { return _schemaWorkCalendarWeekly }
 
 func (m *WorkCalendarWeekly) Pointers() []any {
 	return []any{
@@ -251,31 +226,22 @@ func (m *WorkCalendarException) TableName() string {
 	return "work_calendar_exception"
 }
 
-func (m *WorkCalendarException) Schema() []orm.Field {
-	return []orm.Field{
-		{Name: "id", Type: orm.TypeText, Constraints: orm.ConstraintPK},
-		{Name: "tenant_id", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "staff_id", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "specific_date", Type: orm.TypeInt64, Constraints: orm.ConstraintNone},
-		{Name: "exception_type", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "start_time", Type: orm.TypeInt64, Constraints: orm.ConstraintNone},
-		{Name: "end_time", Type: orm.TypeInt64, Constraints: orm.ConstraintNone},
-		{Name: "notes", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-	}
+func (m *WorkCalendarException) FormName() string {
+	return "work_calendar_exception"
 }
 
-func (m *WorkCalendarException) Values() []any {
-	return []any{
-		m.ID,
-		m.TenantID,
-		m.StaffID,
-		m.SpecificDate,
-		m.ExceptionType,
-		m.StartTime,
-		m.EndTime,
-		m.Notes,
+var _schemaWorkCalendarException = []fmt.Field{
+		{Name: "id", Type: fmt.FieldText, PK: true},
+		{Name: "tenant_id", Type: fmt.FieldText},
+		{Name: "staff_id", Type: fmt.FieldText},
+		{Name: "specific_date", Type: fmt.FieldInt},
+		{Name: "exception_type", Type: fmt.FieldText},
+		{Name: "start_time", Type: fmt.FieldInt},
+		{Name: "end_time", Type: fmt.FieldInt},
+		{Name: "notes", Type: fmt.FieldText},
 	}
-}
+
+func (m *WorkCalendarException) Schema() []fmt.Field { return _schemaWorkCalendarException }
 
 func (m *WorkCalendarException) Pointers() []any {
 	return []any{
@@ -333,57 +299,35 @@ func (m *Reservation) TableName() string {
 	return "reservation"
 }
 
-func (m *Reservation) Schema() []orm.Field {
-	return []orm.Field{
-		{Name: "id", Type: orm.TypeText, Constraints: orm.ConstraintPK},
-		{Name: "tenant_id", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "client_id", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "creator_user_id", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "employee_service_config_id", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "staff_idsnapshot", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "service_idsnapshot", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "duration_min_snapshot", Type: orm.TypeInt64, Constraints: orm.ConstraintNone},
-		{Name: "price_snapshot", Type: orm.TypeFloat64, Constraints: orm.ConstraintNone},
-		{Name: "currency_snapshot", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "reservation_date", Type: orm.TypeInt64, Constraints: orm.ConstraintNone},
-		{Name: "reservation_time", Type: orm.TypeInt64, Constraints: orm.ConstraintNone},
-		{Name: "local_string_date", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "local_string_time", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "status", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "rescheduled_from_id", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "payment_id", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "notes", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "updated_at", Type: orm.TypeInt64, Constraints: orm.ConstraintNone},
-		{Name: "updated_by", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "revision", Type: orm.TypeInt64, Constraints: orm.ConstraintNone},
-	}
+func (m *Reservation) FormName() string {
+	return "reservation"
 }
 
-func (m *Reservation) Values() []any {
-	return []any{
-		m.ID,
-		m.TenantID,
-		m.ClientID,
-		m.CreatorUserID,
-		m.EmployeeServiceConfigID,
-		m.StaffIDSnapshot,
-		m.ServiceIDSnapshot,
-		m.DurationMinSnapshot,
-		m.PriceSnapshot,
-		m.CurrencySnapshot,
-		m.ReservationDate,
-		m.ReservationTime,
-		m.LocalStringDate,
-		m.LocalStringTime,
-		m.Status,
-		m.RescheduledFromID,
-		m.PaymentID,
-		m.Notes,
-		m.UpdatedAt,
-		m.UpdatedBy,
-		m.Revision,
+var _schemaReservation = []fmt.Field{
+		{Name: "id", Type: fmt.FieldText, PK: true},
+		{Name: "tenant_id", Type: fmt.FieldText},
+		{Name: "client_id", Type: fmt.FieldText},
+		{Name: "creator_user_id", Type: fmt.FieldText},
+		{Name: "employee_service_config_id", Type: fmt.FieldText},
+		{Name: "staff_idsnapshot", Type: fmt.FieldText},
+		{Name: "service_idsnapshot", Type: fmt.FieldText},
+		{Name: "duration_min_snapshot", Type: fmt.FieldInt},
+		{Name: "price_snapshot", Type: fmt.FieldFloat},
+		{Name: "currency_snapshot", Type: fmt.FieldText},
+		{Name: "reservation_date", Type: fmt.FieldInt},
+		{Name: "reservation_time", Type: fmt.FieldInt},
+		{Name: "local_string_date", Type: fmt.FieldText},
+		{Name: "local_string_time", Type: fmt.FieldText},
+		{Name: "status", Type: fmt.FieldText},
+		{Name: "rescheduled_from_id", Type: fmt.FieldText},
+		{Name: "payment_id", Type: fmt.FieldText},
+		{Name: "notes", Type: fmt.FieldText},
+		{Name: "updated_at", Type: fmt.FieldInt},
+		{Name: "updated_by", Type: fmt.FieldText},
+		{Name: "revision", Type: fmt.FieldInt},
 	}
-}
+
+func (m *Reservation) Schema() []fmt.Field { return _schemaReservation }
 
 func (m *Reservation) Pointers() []any {
 	return []any{

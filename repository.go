@@ -57,11 +57,8 @@ func (r *Repository) GetReservation(id string) (Reservation, error) {
 	m := &Reservation{}
 	qb := r.db.Query(m).Where(Reservation_.ID).Eq(id)
 	got, err := ReadOneReservation(qb, m)
-	if errors.Is(err, orm.ErrNotFound) {
-		return Reservation{}, ErrNotFound
-	}
 	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
+		if errors.Is(err, orm.ErrNotFound) || err.Error() == "sql: no rows in result set" {
 			return Reservation{}, ErrNotFound
 		}
 		return Reservation{}, err
@@ -73,11 +70,8 @@ func (r *Repository) GetReservationTx(tx *orm.DB, tenantID, id string) (Reservat
 	m := &Reservation{}
 	qb := tx.Query(m).Where(Reservation_.ID).Eq(id).Where(Reservation_.TenantID).Eq(tenantID)
 	got, err := ReadOneReservation(qb, m)
-	if errors.Is(err, orm.ErrNotFound) {
-		return Reservation{}, ErrNotFound
-	}
 	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
+		if errors.Is(err, orm.ErrNotFound) || err.Error() == "sql: no rows in result set" {
 			return Reservation{}, ErrNotFound
 		}
 		return Reservation{}, err
@@ -129,10 +123,10 @@ func (r *Repository) UpdateReservationStatusTx(tx *orm.DB, id, status, updatedBy
 	current := &Reservation{}
 	qb := tx.Query(current).Where(Reservation_.ID).Eq(id)
 	got, err := ReadOneReservation(qb, current)
-	if errors.Is(err, orm.ErrNotFound) {
-		return ErrNotFound
-	}
 	if err != nil {
+		if errors.Is(err, orm.ErrNotFound) || err.Error() == "sql: no rows in result set" {
+			return ErrNotFound
+		}
 		return err
 	}
 	if got.Revision != expectedRevision {
@@ -197,11 +191,8 @@ func (r *Repository) GetEmployeeServiceConfig(id string) (EmployeeServiceConfig,
 	m := &EmployeeServiceConfig{}
 	qb := r.db.Query(m).Where(EmployeeServiceConfig_.ID).Eq(id)
 	got, err := ReadOneEmployeeServiceConfig(qb, m)
-	if errors.Is(err, orm.ErrNotFound) {
-		return EmployeeServiceConfig{}, ErrNotFound
-	}
 	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
+		if errors.Is(err, orm.ErrNotFound) || err.Error() == "sql: no rows in result set" {
 			return EmployeeServiceConfig{}, ErrNotFound
 		}
 		return EmployeeServiceConfig{}, err
@@ -243,7 +234,7 @@ func (r *Repository) UpsertCalendarConfig(cfg WorkCalendarConfig) error {
 	if err != nil && !errors.Is(err, orm.ErrNotFound) && err.Error() != "sql: no rows in result set" {
 		return err
 	}
-	if errors.Is(err, orm.ErrNotFound) || (err != nil && err.Error() == "sql: no rows in result set") {
+	if err != nil && (errors.Is(err, orm.ErrNotFound) || err.Error() == "sql: no rows in result set") {
 		// Does not exist — create
 		idHandler, err := unixid.NewUnixID()
 		if err != nil {
@@ -263,11 +254,8 @@ func (r *Repository) GetCalendarConfig(tenantID, staffID string) (WorkCalendarCo
 		Where(WorkCalendarConfig_.TenantID).Eq(tenantID).
 		Where(WorkCalendarConfig_.StaffID).Eq(staffID)
 	got, err := ReadOneWorkCalendarConfig(qb, m)
-	if errors.Is(err, orm.ErrNotFound) {
-		return WorkCalendarConfig{}, ErrNotFound
-	}
 	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
+		if errors.Is(err, orm.ErrNotFound) || err.Error() == "sql: no rows in result set" {
 			return WorkCalendarConfig{}, ErrNotFound
 		}
 		return WorkCalendarConfig{}, err
@@ -289,7 +277,7 @@ func (r *Repository) UpsertWeeklyCalendar(cal WorkCalendarWeekly) error {
 	if err != nil && !errors.Is(err, orm.ErrNotFound) && err.Error() != "sql: no rows in result set" {
 		return err
 	}
-	if errors.Is(err, orm.ErrNotFound) || (err != nil && err.Error() == "sql: no rows in result set") {
+	if err != nil && (errors.Is(err, orm.ErrNotFound) || err.Error() == "sql: no rows in result set") {
 		idHandler, err := unixid.NewUnixID()
 		if err != nil {
 			return err
