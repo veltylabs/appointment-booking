@@ -22,7 +22,7 @@ type Repository struct {
 // NewRepository creates a new Repository and auto-migrates all tables.
 func NewRepository(db *orm.DB) (*Repository, error) {
 	r := &Repository{db: db}
-	tables := []orm.Model{
+	tables := []fmt.Model{
 		&EmployeeServiceConfig{},
 		&WorkCalendarConfig{},
 		&WorkCalendarWeekly{},
@@ -61,9 +61,6 @@ func (r *Repository) GetReservation(id string) (Reservation, error) {
 		return Reservation{}, ErrNotFound
 	}
 	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
-			return Reservation{}, ErrNotFound
-		}
 		return Reservation{}, err
 	}
 	return *got, nil
@@ -77,9 +74,6 @@ func (r *Repository) GetReservationTx(tx *orm.DB, tenantID, id string) (Reservat
 		return Reservation{}, ErrNotFound
 	}
 	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
-			return Reservation{}, ErrNotFound
-		}
 		return Reservation{}, err
 	}
 	return *got, nil
@@ -201,9 +195,6 @@ func (r *Repository) GetEmployeeServiceConfig(id string) (EmployeeServiceConfig,
 		return EmployeeServiceConfig{}, ErrNotFound
 	}
 	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
-			return EmployeeServiceConfig{}, ErrNotFound
-		}
 		return EmployeeServiceConfig{}, err
 	}
 	return *got, nil
@@ -240,10 +231,10 @@ func (r *Repository) UpsertCalendarConfig(cfg WorkCalendarConfig) error {
 		Where(WorkCalendarConfig_.TenantID).Eq(cfg.TenantID).
 		Where(WorkCalendarConfig_.StaffID).Eq(cfg.StaffID)
 	got, err := ReadOneWorkCalendarConfig(qb, existing)
-	if err != nil && !errors.Is(err, orm.ErrNotFound) && err.Error() != "sql: no rows in result set" {
+	if err != nil && !errors.Is(err, orm.ErrNotFound) {
 		return err
 	}
-	if errors.Is(err, orm.ErrNotFound) || (err != nil && err.Error() == "sql: no rows in result set") {
+	if errors.Is(err, orm.ErrNotFound) {
 		// Does not exist — create
 		idHandler, err := unixid.NewUnixID()
 		if err != nil {
@@ -267,9 +258,6 @@ func (r *Repository) GetCalendarConfig(tenantID, staffID string) (WorkCalendarCo
 		return WorkCalendarConfig{}, ErrNotFound
 	}
 	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
-			return WorkCalendarConfig{}, ErrNotFound
-		}
 		return WorkCalendarConfig{}, err
 	}
 	return *got, nil
@@ -286,10 +274,10 @@ func (r *Repository) UpsertWeeklyCalendar(cal WorkCalendarWeekly) error {
 		Where(WorkCalendarWeekly_.StaffID).Eq(cal.StaffID).
 		Where(WorkCalendarWeekly_.DayOfWeek).Eq(cal.DayOfWeek)
 	got, err := ReadOneWorkCalendarWeekly(qb, existing)
-	if err != nil && !errors.Is(err, orm.ErrNotFound) && err.Error() != "sql: no rows in result set" {
+	if err != nil && !errors.Is(err, orm.ErrNotFound) {
 		return err
 	}
-	if errors.Is(err, orm.ErrNotFound) || (err != nil && err.Error() == "sql: no rows in result set") {
+	if errors.Is(err, orm.ErrNotFound) {
 		idHandler, err := unixid.NewUnixID()
 		if err != nil {
 			return err
