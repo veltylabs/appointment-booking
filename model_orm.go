@@ -3,40 +3,27 @@
 package appointmentbooking
 
 import (
+	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/orm"
 )
 
-func (m *EmployeeServiceConfig) TableName() string {
+func (m *EmployeeServiceConfig) ModelName() string {
 	return "employee_service_config"
 }
 
-func (m *EmployeeServiceConfig) Schema() []orm.Field {
-	return []orm.Field{
-		{Name: "id", Type: orm.TypeText, Constraints: orm.ConstraintPK},
-		{Name: "tenant_id", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "staff_id", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "service_id", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "duration_min", Type: orm.TypeInt64, Constraints: orm.ConstraintNone},
-		{Name: "buffer_min", Type: orm.TypeInt64, Constraints: orm.ConstraintNone},
-		{Name: "price_override", Type: orm.TypeFloat64, Constraints: orm.ConstraintNone},
-		{Name: "payment_required", Type: orm.TypeBool, Constraints: orm.ConstraintNone},
-		{Name: "is_active", Type: orm.TypeBool, Constraints: orm.ConstraintNone},
+var _schemaEmployeeServiceConfig = []fmt.Field{
+		{Name: "id", Type: fmt.FieldText, DB: &fmt.FieldDB{PK: true}},
+		{Name: "tenant_id", Type: fmt.FieldText},
+		{Name: "staff_id", Type: fmt.FieldText},
+		{Name: "service_id", Type: fmt.FieldText},
+		{Name: "duration_min", Type: fmt.FieldInt},
+		{Name: "buffer_min", Type: fmt.FieldInt},
+		{Name: "price_override", Type: fmt.FieldFloat},
+		{Name: "payment_required", Type: fmt.FieldBool},
+		{Name: "is_active", Type: fmt.FieldBool},
 	}
-}
 
-func (m *EmployeeServiceConfig) Values() []any {
-	return []any{
-		m.ID,
-		m.TenantID,
-		m.StaffID,
-		m.ServiceID,
-		m.DurationMin,
-		m.BufferMin,
-		m.PriceOverride,
-		m.PaymentRequired,
-		m.IsActive,
-	}
-}
+func (m *EmployeeServiceConfig) Schema() []fmt.Field { return _schemaEmployeeServiceConfig }
 
 func (m *EmployeeServiceConfig) Pointers() []any {
 	return []any{
@@ -53,7 +40,7 @@ func (m *EmployeeServiceConfig) Pointers() []any {
 }
 
 var EmployeeServiceConfig_ = struct {
-	TableName string
+	ModelName string
 	ID string
 	TenantID string
 	StaffID string
@@ -64,7 +51,7 @@ var EmployeeServiceConfig_ = struct {
 	PaymentRequired string
 	IsActive string
 }{
-	TableName: "employee_service_config",
+	ModelName: "employee_service_config",
 	ID: "id",
 	TenantID: "tenant_id",
 	StaffID: "staff_id",
@@ -87,35 +74,25 @@ func ReadOneEmployeeServiceConfig(qb *orm.QB, model *EmployeeServiceConfig) (*Em
 func ReadAllEmployeeServiceConfig(qb *orm.QB) ([]*EmployeeServiceConfig, error) {
 	var results []*EmployeeServiceConfig
 	err := qb.ReadAll(
-		func() orm.Model { return &EmployeeServiceConfig{} },
-		func(m orm.Model) { results = append(results, m.(*EmployeeServiceConfig)) },
+		func() fmt.Model { return &EmployeeServiceConfig{} },
+		func(m fmt.Model) { results = append(results, m.(*EmployeeServiceConfig)) },
 	)
 	return results, err
 }
 
-func (m *WorkCalendarConfig) TableName() string {
+func (m *WorkCalendarConfig) ModelName() string {
 	return "work_calendar_config"
 }
 
-func (m *WorkCalendarConfig) Schema() []orm.Field {
-	return []orm.Field{
-		{Name: "id", Type: orm.TypeText, Constraints: orm.ConstraintPK},
-		{Name: "tenant_id", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "staff_id", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "timezone", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "is_active", Type: orm.TypeBool, Constraints: orm.ConstraintNone},
+var _schemaWorkCalendarConfig = []fmt.Field{
+		{Name: "id", Type: fmt.FieldText, DB: &fmt.FieldDB{PK: true}},
+		{Name: "tenant_id", Type: fmt.FieldText},
+		{Name: "staff_id", Type: fmt.FieldText},
+		{Name: "timezone", Type: fmt.FieldText},
+		{Name: "is_active", Type: fmt.FieldBool},
 	}
-}
 
-func (m *WorkCalendarConfig) Values() []any {
-	return []any{
-		m.ID,
-		m.TenantID,
-		m.StaffID,
-		m.Timezone,
-		m.IsActive,
-	}
-}
+func (m *WorkCalendarConfig) Schema() []fmt.Field { return _schemaWorkCalendarConfig }
 
 func (m *WorkCalendarConfig) Pointers() []any {
 	return []any{
@@ -128,14 +105,14 @@ func (m *WorkCalendarConfig) Pointers() []any {
 }
 
 var WorkCalendarConfig_ = struct {
-	TableName string
+	ModelName string
 	ID string
 	TenantID string
 	StaffID string
 	Timezone string
 	IsActive string
 }{
-	TableName: "work_calendar_config",
+	ModelName: "work_calendar_config",
 	ID: "id",
 	TenantID: "tenant_id",
 	StaffID: "staff_id",
@@ -154,43 +131,29 @@ func ReadOneWorkCalendarConfig(qb *orm.QB, model *WorkCalendarConfig) (*WorkCale
 func ReadAllWorkCalendarConfig(qb *orm.QB) ([]*WorkCalendarConfig, error) {
 	var results []*WorkCalendarConfig
 	err := qb.ReadAll(
-		func() orm.Model { return &WorkCalendarConfig{} },
-		func(m orm.Model) { results = append(results, m.(*WorkCalendarConfig)) },
+		func() fmt.Model { return &WorkCalendarConfig{} },
+		func(m fmt.Model) { results = append(results, m.(*WorkCalendarConfig)) },
 	)
 	return results, err
 }
 
-func (m *WorkCalendarWeekly) TableName() string {
+func (m *WorkCalendarWeekly) ModelName() string {
 	return "work_calendar_weekly"
 }
 
-func (m *WorkCalendarWeekly) Schema() []orm.Field {
-	return []orm.Field{
-		{Name: "id", Type: orm.TypeText, Constraints: orm.ConstraintPK},
-		{Name: "tenant_id", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "staff_id", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "day_of_week", Type: orm.TypeInt64, Constraints: orm.ConstraintNone},
-		{Name: "work_start", Type: orm.TypeInt64, Constraints: orm.ConstraintNone},
-		{Name: "work_finish", Type: orm.TypeInt64, Constraints: orm.ConstraintNone},
-		{Name: "break_start", Type: orm.TypeInt64, Constraints: orm.ConstraintNone},
-		{Name: "break_finish", Type: orm.TypeInt64, Constraints: orm.ConstraintNone},
-		{Name: "is_active", Type: orm.TypeBool, Constraints: orm.ConstraintNone},
+var _schemaWorkCalendarWeekly = []fmt.Field{
+		{Name: "id", Type: fmt.FieldText, DB: &fmt.FieldDB{PK: true}},
+		{Name: "tenant_id", Type: fmt.FieldText},
+		{Name: "staff_id", Type: fmt.FieldText},
+		{Name: "day_of_week", Type: fmt.FieldInt},
+		{Name: "work_start", Type: fmt.FieldInt},
+		{Name: "work_finish", Type: fmt.FieldInt},
+		{Name: "break_start", Type: fmt.FieldInt},
+		{Name: "break_finish", Type: fmt.FieldInt},
+		{Name: "is_active", Type: fmt.FieldBool},
 	}
-}
 
-func (m *WorkCalendarWeekly) Values() []any {
-	return []any{
-		m.ID,
-		m.TenantID,
-		m.StaffID,
-		m.DayOfWeek,
-		m.WorkStart,
-		m.WorkFinish,
-		m.BreakStart,
-		m.BreakFinish,
-		m.IsActive,
-	}
-}
+func (m *WorkCalendarWeekly) Schema() []fmt.Field { return _schemaWorkCalendarWeekly }
 
 func (m *WorkCalendarWeekly) Pointers() []any {
 	return []any{
@@ -207,7 +170,7 @@ func (m *WorkCalendarWeekly) Pointers() []any {
 }
 
 var WorkCalendarWeekly_ = struct {
-	TableName string
+	ModelName string
 	ID string
 	TenantID string
 	StaffID string
@@ -218,7 +181,7 @@ var WorkCalendarWeekly_ = struct {
 	BreakFinish string
 	IsActive string
 }{
-	TableName: "work_calendar_weekly",
+	ModelName: "work_calendar_weekly",
 	ID: "id",
 	TenantID: "tenant_id",
 	StaffID: "staff_id",
@@ -241,41 +204,28 @@ func ReadOneWorkCalendarWeekly(qb *orm.QB, model *WorkCalendarWeekly) (*WorkCale
 func ReadAllWorkCalendarWeekly(qb *orm.QB) ([]*WorkCalendarWeekly, error) {
 	var results []*WorkCalendarWeekly
 	err := qb.ReadAll(
-		func() orm.Model { return &WorkCalendarWeekly{} },
-		func(m orm.Model) { results = append(results, m.(*WorkCalendarWeekly)) },
+		func() fmt.Model { return &WorkCalendarWeekly{} },
+		func(m fmt.Model) { results = append(results, m.(*WorkCalendarWeekly)) },
 	)
 	return results, err
 }
 
-func (m *WorkCalendarException) TableName() string {
+func (m *WorkCalendarException) ModelName() string {
 	return "work_calendar_exception"
 }
 
-func (m *WorkCalendarException) Schema() []orm.Field {
-	return []orm.Field{
-		{Name: "id", Type: orm.TypeText, Constraints: orm.ConstraintPK},
-		{Name: "tenant_id", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "staff_id", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "specific_date", Type: orm.TypeInt64, Constraints: orm.ConstraintNone},
-		{Name: "exception_type", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "start_time", Type: orm.TypeInt64, Constraints: orm.ConstraintNone},
-		{Name: "end_time", Type: orm.TypeInt64, Constraints: orm.ConstraintNone},
-		{Name: "notes", Type: orm.TypeText, Constraints: orm.ConstraintNone},
+var _schemaWorkCalendarException = []fmt.Field{
+		{Name: "id", Type: fmt.FieldText, DB: &fmt.FieldDB{PK: true}},
+		{Name: "tenant_id", Type: fmt.FieldText},
+		{Name: "staff_id", Type: fmt.FieldText},
+		{Name: "specific_date", Type: fmt.FieldInt},
+		{Name: "exception_type", Type: fmt.FieldText},
+		{Name: "start_time", Type: fmt.FieldInt},
+		{Name: "end_time", Type: fmt.FieldInt},
+		{Name: "notes", Type: fmt.FieldText},
 	}
-}
 
-func (m *WorkCalendarException) Values() []any {
-	return []any{
-		m.ID,
-		m.TenantID,
-		m.StaffID,
-		m.SpecificDate,
-		m.ExceptionType,
-		m.StartTime,
-		m.EndTime,
-		m.Notes,
-	}
-}
+func (m *WorkCalendarException) Schema() []fmt.Field { return _schemaWorkCalendarException }
 
 func (m *WorkCalendarException) Pointers() []any {
 	return []any{
@@ -291,7 +241,7 @@ func (m *WorkCalendarException) Pointers() []any {
 }
 
 var WorkCalendarException_ = struct {
-	TableName string
+	ModelName string
 	ID string
 	TenantID string
 	StaffID string
@@ -301,7 +251,7 @@ var WorkCalendarException_ = struct {
 	EndTime string
 	Notes string
 }{
-	TableName: "work_calendar_exception",
+	ModelName: "work_calendar_exception",
 	ID: "id",
 	TenantID: "tenant_id",
 	StaffID: "staff_id",
@@ -323,67 +273,41 @@ func ReadOneWorkCalendarException(qb *orm.QB, model *WorkCalendarException) (*Wo
 func ReadAllWorkCalendarException(qb *orm.QB) ([]*WorkCalendarException, error) {
 	var results []*WorkCalendarException
 	err := qb.ReadAll(
-		func() orm.Model { return &WorkCalendarException{} },
-		func(m orm.Model) { results = append(results, m.(*WorkCalendarException)) },
+		func() fmt.Model { return &WorkCalendarException{} },
+		func(m fmt.Model) { results = append(results, m.(*WorkCalendarException)) },
 	)
 	return results, err
 }
 
-func (m *Reservation) TableName() string {
+func (m *Reservation) ModelName() string {
 	return "reservation"
 }
 
-func (m *Reservation) Schema() []orm.Field {
-	return []orm.Field{
-		{Name: "id", Type: orm.TypeText, Constraints: orm.ConstraintPK},
-		{Name: "tenant_id", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "client_id", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "creator_user_id", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "employee_service_config_id", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "staff_idsnapshot", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "service_idsnapshot", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "duration_min_snapshot", Type: orm.TypeInt64, Constraints: orm.ConstraintNone},
-		{Name: "price_snapshot", Type: orm.TypeFloat64, Constraints: orm.ConstraintNone},
-		{Name: "currency_snapshot", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "reservation_date", Type: orm.TypeInt64, Constraints: orm.ConstraintNone},
-		{Name: "reservation_time", Type: orm.TypeInt64, Constraints: orm.ConstraintNone},
-		{Name: "local_string_date", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "local_string_time", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "status", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "rescheduled_from_id", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "payment_id", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "notes", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "updated_at", Type: orm.TypeInt64, Constraints: orm.ConstraintNone},
-		{Name: "updated_by", Type: orm.TypeText, Constraints: orm.ConstraintNone},
-		{Name: "revision", Type: orm.TypeInt64, Constraints: orm.ConstraintNone},
+var _schemaReservation = []fmt.Field{
+		{Name: "id", Type: fmt.FieldText, DB: &fmt.FieldDB{PK: true}},
+		{Name: "tenant_id", Type: fmt.FieldText},
+		{Name: "client_id", Type: fmt.FieldText},
+		{Name: "creator_user_id", Type: fmt.FieldText},
+		{Name: "employee_service_config_id", Type: fmt.FieldText},
+		{Name: "staff_idsnapshot", Type: fmt.FieldText},
+		{Name: "service_idsnapshot", Type: fmt.FieldText},
+		{Name: "duration_min_snapshot", Type: fmt.FieldInt},
+		{Name: "price_snapshot", Type: fmt.FieldFloat},
+		{Name: "currency_snapshot", Type: fmt.FieldText},
+		{Name: "reservation_date", Type: fmt.FieldInt},
+		{Name: "reservation_time", Type: fmt.FieldInt},
+		{Name: "local_string_date", Type: fmt.FieldText},
+		{Name: "local_string_time", Type: fmt.FieldText},
+		{Name: "status", Type: fmt.FieldText},
+		{Name: "rescheduled_from_id", Type: fmt.FieldText},
+		{Name: "payment_id", Type: fmt.FieldText},
+		{Name: "notes", Type: fmt.FieldText},
+		{Name: "updated_at", Type: fmt.FieldInt},
+		{Name: "updated_by", Type: fmt.FieldText},
+		{Name: "revision", Type: fmt.FieldInt},
 	}
-}
 
-func (m *Reservation) Values() []any {
-	return []any{
-		m.ID,
-		m.TenantID,
-		m.ClientID,
-		m.CreatorUserID,
-		m.EmployeeServiceConfigID,
-		m.StaffIDSnapshot,
-		m.ServiceIDSnapshot,
-		m.DurationMinSnapshot,
-		m.PriceSnapshot,
-		m.CurrencySnapshot,
-		m.ReservationDate,
-		m.ReservationTime,
-		m.LocalStringDate,
-		m.LocalStringTime,
-		m.Status,
-		m.RescheduledFromID,
-		m.PaymentID,
-		m.Notes,
-		m.UpdatedAt,
-		m.UpdatedBy,
-		m.Revision,
-	}
-}
+func (m *Reservation) Schema() []fmt.Field { return _schemaReservation }
 
 func (m *Reservation) Pointers() []any {
 	return []any{
@@ -412,7 +336,7 @@ func (m *Reservation) Pointers() []any {
 }
 
 var Reservation_ = struct {
-	TableName string
+	ModelName string
 	ID string
 	TenantID string
 	ClientID string
@@ -435,7 +359,7 @@ var Reservation_ = struct {
 	UpdatedBy string
 	Revision string
 }{
-	TableName: "reservation",
+	ModelName: "reservation",
 	ID: "id",
 	TenantID: "tenant_id",
 	ClientID: "client_id",
@@ -470,8 +394,9 @@ func ReadOneReservation(qb *orm.QB, model *Reservation) (*Reservation, error) {
 func ReadAllReservation(qb *orm.QB) ([]*Reservation, error) {
 	var results []*Reservation
 	err := qb.ReadAll(
-		func() orm.Model { return &Reservation{} },
-		func(m orm.Model) { results = append(results, m.(*Reservation)) },
+		func() fmt.Model { return &Reservation{} },
+		func(m fmt.Model) { results = append(results, m.(*Reservation)) },
 	)
 	return results, err
 }
+

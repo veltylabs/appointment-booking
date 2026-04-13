@@ -16,7 +16,7 @@ func Register(s *mcp.MCPServer, svc SchedulingService) {
 
 func registerReservationTools(s *mcp.MCPServer, svc SchedulingService) {
 	// create_reservation
-	toolCreate := mcp.NewTool("create_reservation",
+	toolCreate := mcp.Tool("create_reservation",
 		mcp.WithDescription("Creates a new reservation."),
 		mcp.WithString("tenant_id", mcp.Required()),
 		mcp.WithString("client_id", mcp.Required()),
