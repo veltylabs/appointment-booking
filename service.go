@@ -562,7 +562,7 @@ func (s *schedulingService) ExpirePendingReservations(ctx context.Context, tenan
 
 	rows, err := ReadAllReservation(qb)
 	if err != nil {
-		if errors.Is(err, orm.ErrNotFound) || err.Error() == "sql: no rows in result set" {
+		if errors.Is(err, orm.ErrNotFound) {
 			return 0, nil
 		}
 		return 0, err

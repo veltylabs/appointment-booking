@@ -82,7 +82,11 @@ scheduling := appointmentbooking.New(db, appointmentbooking.Deps{
     Directory: directorymodule.New(db), // implements DirectoryReader
     Publisher: eventBus,                // nil = events disabled
 })
-appointmentbooking.Register(mcpServer, scheduling)
+providers := []mcp.ToolProvider{
+    appointmentbooking.NewReservationProvider(scheduling),
+    appointmentbooking.NewCalendarProvider(scheduling),
+}
+// mcp.NewServer(mcp.Config{...}, providers)
 ```
 
 ---

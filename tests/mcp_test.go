@@ -3,12 +3,13 @@
 package tests
 
 import (
-	ab "github.com/veltylabs/appointment-booking"
 	"context"
 	"testing"
-    "fmt"
+	"encoding/json"
 
 	"github.com/tinywasm/mcp"
+	tinyctx "github.com/tinywasm/context"
+	ab "github.com/veltylabs/appointment-booking"
 )
 
 type mockService struct {
@@ -30,79 +31,75 @@ func (m *mockService) CreateReservation(ctx context.Context, cmd ab.CreateReserv
 	return ab.Reservation{ID: "new-id"}, m.errToReturn
 }
 
+func newTestServer(t *testing.T, svc ab.SchedulingService) *mcp.Server {
+	t.Helper()
+	srv, err := mcp.NewServer(mcp.Config{
+		Name:    "test",
+		Version: "1.0.0",
+		Auth:    mcp.OpenAuthorizer(),
+	}, []mcp.ToolProvider{
+		ab.NewCalendarProvider(svc),
+		ab.NewReservationProvider(svc),
+	})
+	if err != nil {
+		t.Fatalf("NewServer: %v", err)
+	}
+	return srv
+}
+
+func callTool(t *testing.T, srv *mcp.Server, name string, argsJSON string) *mcp.Result {
+	t.Helper()
+	ctx := tinyctx.Background()
+    // Set dummy tokens to pass authorization
+    ctx.Set("mcp.auth_token", "test-token")
+
+	body := []byte(`{"jsonrpc":"2.0","id":"1","method":"tools/call","params":{"name":"` + name + `","arguments":` + json_quote(argsJSON) + `}}`)
+	resp := srv.HandleMessage(ctx, body)
+
+    b, _ := json.Marshal(resp)
+
+    var envelope struct {
+        Result string
+        Error string
+    }
+    json.Unmarshal(b, &envelope)
+
+    if envelope.Error != "" {
+        var errDetails struct {
+            Message string
+        }
+        json.Unmarshal([]byte(envelope.Error), &errDetails)
+        return &mcp.Result{IsError: true, Content: errDetails.Message}
+    }
+
+    var res mcp.Result
+    if err := json.Unmarshal([]byte(envelope.Result), &res); err != nil {
+        return &mcp.Result{IsError: true, Content: "failed to decode result: " + err.Error()}
+    }
+
+	return &res
+}
+
+func json_quote(s string) string {
+    b, _ := json.Marshal(s)
+    return string(b)
+}
+
 func TestMCPHandlers(t *testing.T) {
-	s := mcp.NewMCPServer("test", "1.0")
 	svc := &mockService{}
-	ab.Register(s, svc)
-
-	client, err := mcp.NewInProcessClient(s)
-	if err != nil {
-		t.Fatalf("Failed to create client: %v", err)
-	}
-
-	ctx := context.Background()
-	_, err = client.Initialize(ctx, mcp.InitializeRequest{})
-	if err != nil {
-		t.Fatalf("Failed to initialize client: %v", err)
-	}
+	srv := newTestServer(t, svc)
 
 	t.Run("upsert_weekly_calendar_no_config", func(t *testing.T) {
-		req := mcp.CallToolRequest{
-			Params: mcp.CallToolParams{
-				Name: "upsert_weekly_calendar",
-				Arguments: map[string]any{
-					"tenant_id":    "t1",
-					"staff_id":     "", // empty -> triggers ab.ErrCalendarConfigNotFound
-					"day_of_week":  1,
-					"work_start":   540,
-					"work_finish":  1020,
-					"break_start":  0,
-					"break_finish": 0,
-					"is_active":    true,
-				},
-			},
-		}
-
-		res, err := client.CallTool(ctx, req)
-		if err != nil {
-			t.Fatalf("unexpected error calling tool: %v", err)
-		}
-		if !res.IsError {
-			t.Fatalf("expected error result")
-		}
-
-		txt := res.Content[0].(mcp.TextContent).Text
-		if txt != "Set the staff timezone first using upsert_calendar_config" {
-			t.Fatalf("unexpected error message: %s", txt)
+		res := callTool(t, srv, "upsert_weekly_calendar", `{"tenant_id":"t1","staff_id":"","day_of_week":1,"work_start":540,"work_finish":1020,"break_start":0,"break_finish":0,"is_active":true}`)
+		if res.Content != "Set the staff timezone first using upsert_calendar_config" {
+			t.Fatalf("unexpected error message: %s", res.Content)
 		}
 	})
 
 	t.Run("create_reservation_slot_taken", func(t *testing.T) {
-		req := mcp.CallToolRequest{
-			Params: mcp.CallToolParams{
-				Name: "create_reservation",
-				Arguments: map[string]any{
-					"tenant_id":                  "t1",
-					"client_id":                  "c1",
-					"creator_user_id":            "u1",
-					"employee_service_config_id": "esc1",
-					"slot_start_utc":             int64(1712000000), // triggers ab.ErrSlotTaken
-				},
-			},
-		}
-
-		res, err := client.CallTool(ctx, req)
-		if err != nil {
-			t.Fatalf("unexpected error calling tool: %v", err)
-		}
-		if !res.IsError {
-			t.Fatalf("expected error result")
-		}
-
-		txt := res.Content[0].(mcp.TextContent).Text
-		if txt != "The selected time slot is already taken" {
-			t.Fatalf("unexpected error message: %s", txt)
+		res := callTool(t, srv, "create_reservation", `{"tenant_id":"t1","client_id":"c1","creator_user_id":"u1","employee_service_config_id":"esc1","slot_start_utc":1712000000}`)
+		if res.Content != "The selected time slot is already taken" {
+			t.Fatalf("unexpected error message: %s", res.Content)
 		}
 	})
-    fmt.Println("MCP tests done")
 }

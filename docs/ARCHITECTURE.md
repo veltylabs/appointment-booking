@@ -84,20 +84,30 @@ This module is a library. The consuming application wires all dependencies at st
 // No import cycles — appointment-booking never imports staff, catalog, or directory modules.
 
 staffSvc     := staffmodule.New(db)      // implements StaffReader
-catalogSvc   := catalogmodule.New(db)    // implements CatalogReader
 directorySvc := directorymodule.New(db)  // implements DirectoryReader
 eventBus     := eventbus.New()           // implements EventPublisher
+
+// item-catalog implements the CatalogReader interface.
+// See: github.com/veltylabs/item-catalog
+catalogSvc, _ := itemcatalog.New(db, itemcatalog.Deps{
+    Publisher: eventBus,  // share the event bus, or nil to disable events
+})
 
 // db is *orm.DB — shared with the rest of the monolith or module-specific.
 scheduling := appointmentbooking.New(db, appointmentbooking.Deps{
     Staff:     staffSvc,
-    Catalog:   catalogSvc,
+    Catalog:   catalogSvc,  // *itemcatalog.Module satisfies CatalogReader
     Directory: directorySvc,
     Publisher: eventBus,  // nil = no events
 })
 
-// Register MCP tools
-appointmentbooking.Register(mcpServer, scheduling)
+// Register MCP tools — two ToolProviders, one per domain aggregate.
+// Pass them to mcp.NewServer as the providers slice.
+providers := []mcp.ToolProvider{
+    appointmentbooking.NewReservationProvider(scheduling),
+    appointmentbooking.NewCalendarProvider(scheduling),
+}
+// mcp.NewServer(mcp.Config{...}, providers)
 ```
 
 The Dependency Inversion Principle is enforced for cross-module concerns: `appointment-booking` defines `StaffReader`, `CatalogReader`, `DirectoryReader`, and `EventPublisher` — other modules provide adapter implementations. Internal DB operations go directly through `*orm.DB` (no indirection layer needed). No module imports another directly.
@@ -111,7 +121,6 @@ Free slots are derived at query time from the intersection of:
 
 Exception priority: `HOLIDAY` > `SPECIAL_HOURS` > `BLOCKED`.
 
-See: [ListAvailability algorithm](PLAN_STAGE_3_SERVICE.md#4-listavailability-algorithm)
 
 Also see: [Composition Root Sequence Diagram](diagrams/sequence.md)
 
