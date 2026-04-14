@@ -126,7 +126,6 @@ Also see: [Composition Root Sequence Diagram](diagrams/sequence.md)
 
 ## 9. Related Documents
 
-- [SKILL — LLM-friendly summary](SKILL.md)
 - [Database Diagram](diagrams/database.md)
 - [FSM Diagram](diagrams/fsm.md)
 - [Sequence Diagrams](diagrams/sequence.md) — ListAvailability, CreateReservation, ChangeReservationStatus, ExpirePendingReservations

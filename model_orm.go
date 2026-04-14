@@ -5,6 +5,7 @@ package appointmentbooking
 import (
 	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/orm"
+	"github.com/tinywasm/form/input"
 )
 
 func (m *EmployeeServiceConfig) ModelName() string {
@@ -39,8 +40,15 @@ func (m *EmployeeServiceConfig) Pointers() []any {
 	}
 }
 
+type EmployeeServiceConfigList []*EmployeeServiceConfig
+
+func (s *EmployeeServiceConfigList) Schema() []fmt.Field { return nil }
+func (s *EmployeeServiceConfigList) Pointers() []any     { return nil }
+func (s *EmployeeServiceConfigList) Len() int             { return len(*s) }
+func (s *EmployeeServiceConfigList) At(i int) fmt.Fielder { return (*s)[i] }
+func (s *EmployeeServiceConfigList) Append() fmt.Fielder  { v := &EmployeeServiceConfig{}; *s = append(*s, v); return v }
+
 var EmployeeServiceConfig_ = struct {
-	ModelName string
 	ID string
 	TenantID string
 	StaffID string
@@ -51,7 +59,6 @@ var EmployeeServiceConfig_ = struct {
 	PaymentRequired string
 	IsActive string
 }{
-	ModelName: "employee_service_config",
 	ID: "id",
 	TenantID: "tenant_id",
 	StaffID: "staff_id",
@@ -71,13 +78,13 @@ func ReadOneEmployeeServiceConfig(qb *orm.QB, model *EmployeeServiceConfig) (*Em
 	return model, nil
 }
 
-func ReadAllEmployeeServiceConfig(qb *orm.QB) ([]*EmployeeServiceConfig, error) {
-	var results []*EmployeeServiceConfig
+func ReadAllEmployeeServiceConfig(qb *orm.QB) (*EmployeeServiceConfigList, error) {
+	var results EmployeeServiceConfigList
 	err := qb.ReadAll(
 		func() fmt.Model { return &EmployeeServiceConfig{} },
 		func(m fmt.Model) { results = append(results, m.(*EmployeeServiceConfig)) },
 	)
-	return results, err
+	return &results, err
 }
 
 func (m *WorkCalendarConfig) ModelName() string {
@@ -104,15 +111,21 @@ func (m *WorkCalendarConfig) Pointers() []any {
 	}
 }
 
+type WorkCalendarConfigList []*WorkCalendarConfig
+
+func (s *WorkCalendarConfigList) Schema() []fmt.Field { return nil }
+func (s *WorkCalendarConfigList) Pointers() []any     { return nil }
+func (s *WorkCalendarConfigList) Len() int             { return len(*s) }
+func (s *WorkCalendarConfigList) At(i int) fmt.Fielder { return (*s)[i] }
+func (s *WorkCalendarConfigList) Append() fmt.Fielder  { v := &WorkCalendarConfig{}; *s = append(*s, v); return v }
+
 var WorkCalendarConfig_ = struct {
-	ModelName string
 	ID string
 	TenantID string
 	StaffID string
 	Timezone string
 	IsActive string
 }{
-	ModelName: "work_calendar_config",
 	ID: "id",
 	TenantID: "tenant_id",
 	StaffID: "staff_id",
@@ -128,13 +141,13 @@ func ReadOneWorkCalendarConfig(qb *orm.QB, model *WorkCalendarConfig) (*WorkCale
 	return model, nil
 }
 
-func ReadAllWorkCalendarConfig(qb *orm.QB) ([]*WorkCalendarConfig, error) {
-	var results []*WorkCalendarConfig
+func ReadAllWorkCalendarConfig(qb *orm.QB) (*WorkCalendarConfigList, error) {
+	var results WorkCalendarConfigList
 	err := qb.ReadAll(
 		func() fmt.Model { return &WorkCalendarConfig{} },
 		func(m fmt.Model) { results = append(results, m.(*WorkCalendarConfig)) },
 	)
-	return results, err
+	return &results, err
 }
 
 func (m *WorkCalendarWeekly) ModelName() string {
@@ -169,8 +182,15 @@ func (m *WorkCalendarWeekly) Pointers() []any {
 	}
 }
 
+type WorkCalendarWeeklyList []*WorkCalendarWeekly
+
+func (s *WorkCalendarWeeklyList) Schema() []fmt.Field { return nil }
+func (s *WorkCalendarWeeklyList) Pointers() []any     { return nil }
+func (s *WorkCalendarWeeklyList) Len() int             { return len(*s) }
+func (s *WorkCalendarWeeklyList) At(i int) fmt.Fielder { return (*s)[i] }
+func (s *WorkCalendarWeeklyList) Append() fmt.Fielder  { v := &WorkCalendarWeekly{}; *s = append(*s, v); return v }
+
 var WorkCalendarWeekly_ = struct {
-	ModelName string
 	ID string
 	TenantID string
 	StaffID string
@@ -181,7 +201,6 @@ var WorkCalendarWeekly_ = struct {
 	BreakFinish string
 	IsActive string
 }{
-	ModelName: "work_calendar_weekly",
 	ID: "id",
 	TenantID: "tenant_id",
 	StaffID: "staff_id",
@@ -201,13 +220,13 @@ func ReadOneWorkCalendarWeekly(qb *orm.QB, model *WorkCalendarWeekly) (*WorkCale
 	return model, nil
 }
 
-func ReadAllWorkCalendarWeekly(qb *orm.QB) ([]*WorkCalendarWeekly, error) {
-	var results []*WorkCalendarWeekly
+func ReadAllWorkCalendarWeekly(qb *orm.QB) (*WorkCalendarWeeklyList, error) {
+	var results WorkCalendarWeeklyList
 	err := qb.ReadAll(
 		func() fmt.Model { return &WorkCalendarWeekly{} },
 		func(m fmt.Model) { results = append(results, m.(*WorkCalendarWeekly)) },
 	)
-	return results, err
+	return &results, err
 }
 
 func (m *WorkCalendarException) ModelName() string {
@@ -240,8 +259,15 @@ func (m *WorkCalendarException) Pointers() []any {
 	}
 }
 
+type WorkCalendarExceptionList []*WorkCalendarException
+
+func (s *WorkCalendarExceptionList) Schema() []fmt.Field { return nil }
+func (s *WorkCalendarExceptionList) Pointers() []any     { return nil }
+func (s *WorkCalendarExceptionList) Len() int             { return len(*s) }
+func (s *WorkCalendarExceptionList) At(i int) fmt.Fielder { return (*s)[i] }
+func (s *WorkCalendarExceptionList) Append() fmt.Fielder  { v := &WorkCalendarException{}; *s = append(*s, v); return v }
+
 var WorkCalendarException_ = struct {
-	ModelName string
 	ID string
 	TenantID string
 	StaffID string
@@ -251,7 +277,6 @@ var WorkCalendarException_ = struct {
 	EndTime string
 	Notes string
 }{
-	ModelName: "work_calendar_exception",
 	ID: "id",
 	TenantID: "tenant_id",
 	StaffID: "staff_id",
@@ -270,13 +295,13 @@ func ReadOneWorkCalendarException(qb *orm.QB, model *WorkCalendarException) (*Wo
 	return model, nil
 }
 
-func ReadAllWorkCalendarException(qb *orm.QB) ([]*WorkCalendarException, error) {
-	var results []*WorkCalendarException
+func ReadAllWorkCalendarException(qb *orm.QB) (*WorkCalendarExceptionList, error) {
+	var results WorkCalendarExceptionList
 	err := qb.ReadAll(
 		func() fmt.Model { return &WorkCalendarException{} },
 		func(m fmt.Model) { results = append(results, m.(*WorkCalendarException)) },
 	)
-	return results, err
+	return &results, err
 }
 
 func (m *Reservation) ModelName() string {
@@ -335,8 +360,15 @@ func (m *Reservation) Pointers() []any {
 	}
 }
 
+type ReservationList []*Reservation
+
+func (s *ReservationList) Schema() []fmt.Field { return nil }
+func (s *ReservationList) Pointers() []any     { return nil }
+func (s *ReservationList) Len() int             { return len(*s) }
+func (s *ReservationList) At(i int) fmt.Fielder { return (*s)[i] }
+func (s *ReservationList) Append() fmt.Fielder  { v := &Reservation{}; *s = append(*s, v); return v }
+
 var Reservation_ = struct {
-	ModelName string
 	ID string
 	TenantID string
 	ClientID string
@@ -359,7 +391,6 @@ var Reservation_ = struct {
 	UpdatedBy string
 	Revision string
 }{
-	ModelName: "reservation",
 	ID: "id",
 	TenantID: "tenant_id",
 	ClientID: "client_id",
@@ -391,12 +422,378 @@ func ReadOneReservation(qb *orm.QB, model *Reservation) (*Reservation, error) {
 	return model, nil
 }
 
-func ReadAllReservation(qb *orm.QB) ([]*Reservation, error) {
-	var results []*Reservation
+func ReadAllReservation(qb *orm.QB) (*ReservationList, error) {
+	var results ReservationList
 	err := qb.ReadAll(
 		func() fmt.Model { return &Reservation{} },
 		func(m fmt.Model) { results = append(results, m.(*Reservation)) },
 	)
-	return results, err
+	return &results, err
+}
+
+var _schemaTimeSlot = []fmt.Field{
+		{Name: "start_utc", Type: fmt.FieldInt, Widget: input.Number()},
+		{Name: "end_utc", Type: fmt.FieldInt, Widget: input.Number()},
+	}
+
+func (m *TimeSlot) Schema() []fmt.Field { return _schemaTimeSlot }
+
+func (m *TimeSlot) Pointers() []any {
+	return []any{
+		&m.StartUTC,
+		&m.EndUTC,
+	}
+}
+
+type TimeSlotList []*TimeSlot
+
+func (s *TimeSlotList) Schema() []fmt.Field { return nil }
+func (s *TimeSlotList) Pointers() []any     { return nil }
+func (s *TimeSlotList) Len() int             { return len(*s) }
+func (s *TimeSlotList) At(i int) fmt.Fielder { return (*s)[i] }
+func (s *TimeSlotList) Append() fmt.Fielder  { v := &TimeSlot{}; *s = append(*s, v); return v }
+
+func (m *TimeSlot) Validate(action byte) error {
+	return fmt.ValidateFields(action, m)
+}
+
+var _schemacreateReservationArgs = []fmt.Field{
+		{Name: "tenant_id", Type: fmt.FieldText, Widget: input.Text()},
+		{Name: "client_id", Type: fmt.FieldText, Widget: input.Text()},
+		{Name: "creator_user_id", Type: fmt.FieldText, Widget: input.Text()},
+		{Name: "employee_service_config_id", Type: fmt.FieldText, Widget: input.Text()},
+		{Name: "slot_start_utc", Type: fmt.FieldInt, Widget: input.Number()},
+		{Name: "notes", Type: fmt.FieldText, Widget: input.Text()},
+		{Name: "rescheduled_from_id", Type: fmt.FieldText, Widget: input.Text()},
+	}
+
+func (m *createReservationArgs) Schema() []fmt.Field { return _schemacreateReservationArgs }
+
+func (m *createReservationArgs) Pointers() []any {
+	return []any{
+		&m.TenantID,
+		&m.ClientID,
+		&m.CreatorUserID,
+		&m.EmployeeServiceConfigID,
+		&m.SlotStartUTC,
+		&m.Notes,
+		&m.RescheduledFromID,
+	}
+}
+
+type createReservationArgsList []*createReservationArgs
+
+func (s *createReservationArgsList) Schema() []fmt.Field { return nil }
+func (s *createReservationArgsList) Pointers() []any     { return nil }
+func (s *createReservationArgsList) Len() int             { return len(*s) }
+func (s *createReservationArgsList) At(i int) fmt.Fielder { return (*s)[i] }
+func (s *createReservationArgsList) Append() fmt.Fielder  { v := &createReservationArgs{}; *s = append(*s, v); return v }
+
+func (m *createReservationArgs) Validate(action byte) error {
+	return fmt.ValidateFields(action, m)
+}
+
+var _schemagetReservationArgs = []fmt.Field{
+		{Name: "tenant_id", Type: fmt.FieldText, Widget: input.Text()},
+		{Name: "id", Type: fmt.FieldText, Widget: input.Text()},
+	}
+
+func (m *getReservationArgs) Schema() []fmt.Field { return _schemagetReservationArgs }
+
+func (m *getReservationArgs) Pointers() []any {
+	return []any{
+		&m.TenantID,
+		&m.ID,
+	}
+}
+
+type getReservationArgsList []*getReservationArgs
+
+func (s *getReservationArgsList) Schema() []fmt.Field { return nil }
+func (s *getReservationArgsList) Pointers() []any     { return nil }
+func (s *getReservationArgsList) Len() int             { return len(*s) }
+func (s *getReservationArgsList) At(i int) fmt.Fielder { return (*s)[i] }
+func (s *getReservationArgsList) Append() fmt.Fielder  { v := &getReservationArgs{}; *s = append(*s, v); return v }
+
+func (m *getReservationArgs) Validate(action byte) error {
+	return fmt.ValidateFields(action, m)
+}
+
+var _schemalistReservationsByStaffArgs = []fmt.Field{
+		{Name: "tenant_id", Type: fmt.FieldText, Widget: input.Text()},
+		{Name: "staff_id", Type: fmt.FieldText, Widget: input.Text()},
+		{Name: "from", Type: fmt.FieldInt, Widget: input.Number()},
+		{Name: "to", Type: fmt.FieldInt, Widget: input.Number()},
+	}
+
+func (m *listReservationsByStaffArgs) Schema() []fmt.Field { return _schemalistReservationsByStaffArgs }
+
+func (m *listReservationsByStaffArgs) Pointers() []any {
+	return []any{
+		&m.TenantID,
+		&m.StaffID,
+		&m.From,
+		&m.To,
+	}
+}
+
+type listReservationsByStaffArgsList []*listReservationsByStaffArgs
+
+func (s *listReservationsByStaffArgsList) Schema() []fmt.Field { return nil }
+func (s *listReservationsByStaffArgsList) Pointers() []any     { return nil }
+func (s *listReservationsByStaffArgsList) Len() int             { return len(*s) }
+func (s *listReservationsByStaffArgsList) At(i int) fmt.Fielder { return (*s)[i] }
+func (s *listReservationsByStaffArgsList) Append() fmt.Fielder  { v := &listReservationsByStaffArgs{}; *s = append(*s, v); return v }
+
+func (m *listReservationsByStaffArgs) Validate(action byte) error {
+	return fmt.ValidateFields(action, m)
+}
+
+var _schemalistReservationsByClientArgs = []fmt.Field{
+		{Name: "tenant_id", Type: fmt.FieldText, Widget: input.Text()},
+		{Name: "client_id", Type: fmt.FieldText, Widget: input.Text()},
+	}
+
+func (m *listReservationsByClientArgs) Schema() []fmt.Field { return _schemalistReservationsByClientArgs }
+
+func (m *listReservationsByClientArgs) Pointers() []any {
+	return []any{
+		&m.TenantID,
+		&m.ClientID,
+	}
+}
+
+type listReservationsByClientArgsList []*listReservationsByClientArgs
+
+func (s *listReservationsByClientArgsList) Schema() []fmt.Field { return nil }
+func (s *listReservationsByClientArgsList) Pointers() []any     { return nil }
+func (s *listReservationsByClientArgsList) Len() int             { return len(*s) }
+func (s *listReservationsByClientArgsList) At(i int) fmt.Fielder { return (*s)[i] }
+func (s *listReservationsByClientArgsList) Append() fmt.Fielder  { v := &listReservationsByClientArgs{}; *s = append(*s, v); return v }
+
+func (m *listReservationsByClientArgs) Validate(action byte) error {
+	return fmt.ValidateFields(action, m)
+}
+
+var _schemachangeReservationStatusArgs = []fmt.Field{
+		{Name: "tenant_id", Type: fmt.FieldText, Widget: input.Text()},
+		{Name: "id", Type: fmt.FieldText, Widget: input.Text()},
+		{Name: "event", Type: fmt.FieldText, Widget: input.Text()},
+		{Name: "actor_id", Type: fmt.FieldText, Widget: input.Text()},
+		{Name: "payment_id", Type: fmt.FieldText, Widget: input.Text()},
+		{Name: "revision", Type: fmt.FieldInt, Widget: input.Number()},
+	}
+
+func (m *changeReservationStatusArgs) Schema() []fmt.Field { return _schemachangeReservationStatusArgs }
+
+func (m *changeReservationStatusArgs) Pointers() []any {
+	return []any{
+		&m.TenantID,
+		&m.ID,
+		&m.Event,
+		&m.ActorID,
+		&m.PaymentID,
+		&m.Revision,
+	}
+}
+
+type changeReservationStatusArgsList []*changeReservationStatusArgs
+
+func (s *changeReservationStatusArgsList) Schema() []fmt.Field { return nil }
+func (s *changeReservationStatusArgsList) Pointers() []any     { return nil }
+func (s *changeReservationStatusArgsList) Len() int             { return len(*s) }
+func (s *changeReservationStatusArgsList) At(i int) fmt.Fielder { return (*s)[i] }
+func (s *changeReservationStatusArgsList) Append() fmt.Fielder  { v := &changeReservationStatusArgs{}; *s = append(*s, v); return v }
+
+func (m *changeReservationStatusArgs) Validate(action byte) error {
+	return fmt.ValidateFields(action, m)
+}
+
+var _schemaexpirePendingReservationsArgs = []fmt.Field{
+		{Name: "tenant_id", Type: fmt.FieldText, Widget: input.Text()},
+		{Name: "before", Type: fmt.FieldInt, Widget: input.Number()},
+	}
+
+func (m *expirePendingReservationsArgs) Schema() []fmt.Field { return _schemaexpirePendingReservationsArgs }
+
+func (m *expirePendingReservationsArgs) Pointers() []any {
+	return []any{
+		&m.TenantID,
+		&m.Before,
+	}
+}
+
+type expirePendingReservationsArgsList []*expirePendingReservationsArgs
+
+func (s *expirePendingReservationsArgsList) Schema() []fmt.Field { return nil }
+func (s *expirePendingReservationsArgsList) Pointers() []any     { return nil }
+func (s *expirePendingReservationsArgsList) Len() int             { return len(*s) }
+func (s *expirePendingReservationsArgsList) At(i int) fmt.Fielder { return (*s)[i] }
+func (s *expirePendingReservationsArgsList) Append() fmt.Fielder  { v := &expirePendingReservationsArgs{}; *s = append(*s, v); return v }
+
+func (m *expirePendingReservationsArgs) Validate(action byte) error {
+	return fmt.ValidateFields(action, m)
+}
+
+var _schemaupsertCalendarConfigArgs = []fmt.Field{
+		{Name: "tenant_id", Type: fmt.FieldText, Widget: input.Text()},
+		{Name: "staff_id", Type: fmt.FieldText, Widget: input.Text()},
+		{Name: "timezone", Type: fmt.FieldText, Widget: input.Text()},
+		{Name: "is_active", Type: fmt.FieldBool, Widget: input.Checkbox()},
+	}
+
+func (m *upsertCalendarConfigArgs) Schema() []fmt.Field { return _schemaupsertCalendarConfigArgs }
+
+func (m *upsertCalendarConfigArgs) Pointers() []any {
+	return []any{
+		&m.TenantID,
+		&m.StaffID,
+		&m.Timezone,
+		&m.IsActive,
+	}
+}
+
+type upsertCalendarConfigArgsList []*upsertCalendarConfigArgs
+
+func (s *upsertCalendarConfigArgsList) Schema() []fmt.Field { return nil }
+func (s *upsertCalendarConfigArgsList) Pointers() []any     { return nil }
+func (s *upsertCalendarConfigArgsList) Len() int             { return len(*s) }
+func (s *upsertCalendarConfigArgsList) At(i int) fmt.Fielder { return (*s)[i] }
+func (s *upsertCalendarConfigArgsList) Append() fmt.Fielder  { v := &upsertCalendarConfigArgs{}; *s = append(*s, v); return v }
+
+func (m *upsertCalendarConfigArgs) Validate(action byte) error {
+	return fmt.ValidateFields(action, m)
+}
+
+var _schemaupsertWeeklyCalendarArgs = []fmt.Field{
+		{Name: "tenant_id", Type: fmt.FieldText, Widget: input.Text()},
+		{Name: "staff_id", Type: fmt.FieldText, Widget: input.Text()},
+		{Name: "day_of_week", Type: fmt.FieldInt, Widget: input.Number()},
+		{Name: "work_start", Type: fmt.FieldInt, Widget: input.Number()},
+		{Name: "work_finish", Type: fmt.FieldInt, Widget: input.Number()},
+		{Name: "break_start", Type: fmt.FieldInt, Widget: input.Number()},
+		{Name: "break_finish", Type: fmt.FieldInt, Widget: input.Number()},
+		{Name: "is_active", Type: fmt.FieldBool, Widget: input.Checkbox()},
+	}
+
+func (m *upsertWeeklyCalendarArgs) Schema() []fmt.Field { return _schemaupsertWeeklyCalendarArgs }
+
+func (m *upsertWeeklyCalendarArgs) Pointers() []any {
+	return []any{
+		&m.TenantID,
+		&m.StaffID,
+		&m.DayOfWeek,
+		&m.WorkStart,
+		&m.WorkFinish,
+		&m.BreakStart,
+		&m.BreakFinish,
+		&m.IsActive,
+	}
+}
+
+type upsertWeeklyCalendarArgsList []*upsertWeeklyCalendarArgs
+
+func (s *upsertWeeklyCalendarArgsList) Schema() []fmt.Field { return nil }
+func (s *upsertWeeklyCalendarArgsList) Pointers() []any     { return nil }
+func (s *upsertWeeklyCalendarArgsList) Len() int             { return len(*s) }
+func (s *upsertWeeklyCalendarArgsList) At(i int) fmt.Fielder { return (*s)[i] }
+func (s *upsertWeeklyCalendarArgsList) Append() fmt.Fielder  { v := &upsertWeeklyCalendarArgs{}; *s = append(*s, v); return v }
+
+func (m *upsertWeeklyCalendarArgs) Validate(action byte) error {
+	return fmt.ValidateFields(action, m)
+}
+
+var _schemaaddCalendarExceptionArgs = []fmt.Field{
+		{Name: "tenant_id", Type: fmt.FieldText, Widget: input.Text()},
+		{Name: "staff_id", Type: fmt.FieldText, Widget: input.Text()},
+		{Name: "specific_date", Type: fmt.FieldInt, Widget: input.Number()},
+		{Name: "exception_type", Type: fmt.FieldText, Widget: input.Text()},
+		{Name: "start_time", Type: fmt.FieldInt, Widget: input.Number()},
+		{Name: "end_time", Type: fmt.FieldInt, Widget: input.Number()},
+		{Name: "notes", Type: fmt.FieldText, Widget: input.Text()},
+	}
+
+func (m *addCalendarExceptionArgs) Schema() []fmt.Field { return _schemaaddCalendarExceptionArgs }
+
+func (m *addCalendarExceptionArgs) Pointers() []any {
+	return []any{
+		&m.TenantID,
+		&m.StaffID,
+		&m.SpecificDate,
+		&m.ExceptionType,
+		&m.StartTime,
+		&m.EndTime,
+		&m.Notes,
+	}
+}
+
+type addCalendarExceptionArgsList []*addCalendarExceptionArgs
+
+func (s *addCalendarExceptionArgsList) Schema() []fmt.Field { return nil }
+func (s *addCalendarExceptionArgsList) Pointers() []any     { return nil }
+func (s *addCalendarExceptionArgsList) Len() int             { return len(*s) }
+func (s *addCalendarExceptionArgsList) At(i int) fmt.Fielder { return (*s)[i] }
+func (s *addCalendarExceptionArgsList) Append() fmt.Fielder  { v := &addCalendarExceptionArgs{}; *s = append(*s, v); return v }
+
+func (m *addCalendarExceptionArgs) Validate(action byte) error {
+	return fmt.ValidateFields(action, m)
+}
+
+var _schemaremoveCalendarExceptionArgs = []fmt.Field{
+		{Name: "tenant_id", Type: fmt.FieldText, Widget: input.Text()},
+		{Name: "exception_id", Type: fmt.FieldText, Widget: input.Text()},
+	}
+
+func (m *removeCalendarExceptionArgs) Schema() []fmt.Field { return _schemaremoveCalendarExceptionArgs }
+
+func (m *removeCalendarExceptionArgs) Pointers() []any {
+	return []any{
+		&m.TenantID,
+		&m.ExceptionID,
+	}
+}
+
+type removeCalendarExceptionArgsList []*removeCalendarExceptionArgs
+
+func (s *removeCalendarExceptionArgsList) Schema() []fmt.Field { return nil }
+func (s *removeCalendarExceptionArgsList) Pointers() []any     { return nil }
+func (s *removeCalendarExceptionArgsList) Len() int             { return len(*s) }
+func (s *removeCalendarExceptionArgsList) At(i int) fmt.Fielder { return (*s)[i] }
+func (s *removeCalendarExceptionArgsList) Append() fmt.Fielder  { v := &removeCalendarExceptionArgs{}; *s = append(*s, v); return v }
+
+func (m *removeCalendarExceptionArgs) Validate(action byte) error {
+	return fmt.ValidateFields(action, m)
+}
+
+var _schemalistAvailabilityArgs = []fmt.Field{
+		{Name: "tenant_id", Type: fmt.FieldText, Widget: input.Text()},
+		{Name: "staff_id", Type: fmt.FieldText, Widget: input.Text()},
+		{Name: "config_id", Type: fmt.FieldText, Widget: input.Text()},
+		{Name: "from", Type: fmt.FieldInt, Widget: input.Number()},
+		{Name: "to", Type: fmt.FieldInt, Widget: input.Number()},
+	}
+
+func (m *listAvailabilityArgs) Schema() []fmt.Field { return _schemalistAvailabilityArgs }
+
+func (m *listAvailabilityArgs) Pointers() []any {
+	return []any{
+		&m.TenantID,
+		&m.StaffID,
+		&m.ConfigID,
+		&m.From,
+		&m.To,
+	}
+}
+
+type listAvailabilityArgsList []*listAvailabilityArgs
+
+func (s *listAvailabilityArgsList) Schema() []fmt.Field { return nil }
+func (s *listAvailabilityArgsList) Pointers() []any     { return nil }
+func (s *listAvailabilityArgsList) Len() int             { return len(*s) }
+func (s *listAvailabilityArgsList) At(i int) fmt.Fielder { return (*s)[i] }
+func (s *listAvailabilityArgsList) Append() fmt.Fielder  { v := &listAvailabilityArgs{}; *s = append(*s, v); return v }
+
+func (m *listAvailabilityArgs) Validate(action byte) error {
+	return fmt.ValidateFields(action, m)
 }
 

@@ -569,7 +569,7 @@ func (s *schedulingService) ExpirePendingReservations(ctx context.Context, tenan
 	}
 
 	expiredCount := 0
-	for _, row := range rows {
+	for _, row := range *rows {
 		err := s.ChangeReservationStatus(ctx, ChangeStatusCmd{
 			TenantID: tenantID,
 			ID:       row.ID,

@@ -72,8 +72,101 @@ type Reservation struct {
 	Revision                int64
 }
 
-// TimeSlot is returned by ListAvailability
+// ormc:formonly
 type TimeSlot struct {
-	StartUTC int64 `db:"-"`
-	EndUTC   int64 `db:"-"`
+	StartUTC int64
+	EndUTC   int64
+}
+
+// ormc:formonly
+type createReservationArgs struct {
+	TenantID                string
+	ClientID                string
+	CreatorUserID           string
+	EmployeeServiceConfigID string
+	SlotStartUTC            int64
+	Notes                   string
+	RescheduledFromID       string
+}
+
+// ormc:formonly
+type getReservationArgs struct {
+	TenantID string
+	ID       string
+}
+
+// ormc:formonly
+type listReservationsByStaffArgs struct {
+	TenantID string
+	StaffID  string
+	From     int64
+	To       int64
+}
+
+// ormc:formonly
+type listReservationsByClientArgs struct {
+	TenantID string
+	ClientID string
+}
+
+// ormc:formonly
+type changeReservationStatusArgs struct {
+	TenantID  string
+	ID        string
+	Event     string
+	ActorID   string
+	PaymentID string
+	Revision  int64
+}
+
+// ormc:formonly
+type expirePendingReservationsArgs struct {
+	TenantID string
+	Before   int64
+}
+
+// ormc:formonly
+type upsertCalendarConfigArgs struct {
+	TenantID string
+	StaffID  string
+	Timezone string
+	IsActive bool
+}
+
+// ormc:formonly
+type upsertWeeklyCalendarArgs struct {
+	TenantID    string
+	StaffID     string
+	DayOfWeek   int64
+	WorkStart   int64
+	WorkFinish  int64
+	BreakStart  int64
+	BreakFinish int64
+	IsActive    bool
+}
+
+// ormc:formonly
+type addCalendarExceptionArgs struct {
+	TenantID      string
+	StaffID       string
+	SpecificDate  int64
+	ExceptionType string
+	StartTime     int64
+	EndTime       int64
+	Notes         string
+}
+
+// ormc:formonly
+type removeCalendarExceptionArgs struct {
+	TenantID    string
+	ExceptionID string
+}
+
+// ormc:formonly
+type listAvailabilityArgs struct {
+	TenantID string
+	StaffID  string
+	ConfigID string
+	From     int64
+	To       int64
 }

@@ -90,8 +90,8 @@ func (r *Repository) ListReservationsByStaff(tenantID, staffID string, from, to 
 	if err != nil {
 		return nil, err
 	}
-	out := make([]Reservation, len(rows))
-	for i, row := range rows {
+	out := make([]Reservation, len(*rows))
+	for i, row := range *rows {
 		out[i] = *row
 	}
 	return out, nil
@@ -106,8 +106,8 @@ func (r *Repository) ListReservationsByClient(tenantID, clientID string) ([]Rese
 	if err != nil {
 		return nil, err
 	}
-	out := make([]Reservation, len(rows))
-	for i, row := range rows {
+	out := make([]Reservation, len(*rows))
+	for i, row := range *rows {
 		out[i] = *row
 	}
 	return out, nil
@@ -163,8 +163,8 @@ func (r *Repository) ListExceptions(tenantID, staffID string, from, to int64) ([
 	if err != nil {
 		return nil, err
 	}
-	out := make([]WorkCalendarException, len(rows))
-	for i, row := range rows {
+	out := make([]WorkCalendarException, len(*rows))
+	for i, row := range *rows {
 		out[i] = *row
 	}
 	return out, nil
@@ -209,8 +209,8 @@ func (r *Repository) ListEmployeeServiceConfigByStaff(tenantID, staffID string) 
 	if err != nil {
 		return nil, err
 	}
-	out := make([]EmployeeServiceConfig, len(rows))
-	for i, row := range rows {
+	out := make([]EmployeeServiceConfig, len(*rows))
+	for i, row := range *rows {
 		out[i] = *row
 	}
 	return out, nil
@@ -298,8 +298,8 @@ func (r *Repository) ListWeeklyCalendar(tenantID, staffID string) ([]WorkCalenda
 	if err != nil {
 		return nil, err
 	}
-	out := make([]WorkCalendarWeekly, len(rows))
-	for i, row := range rows {
+	out := make([]WorkCalendarWeekly, len(*rows))
+	for i, row := range *rows {
 		out[i] = *row
 	}
 	return out, nil
