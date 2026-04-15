@@ -2,7 +2,6 @@ package tests
 
 import (
 	ab "github.com/veltylabs/appointment-booking"
-	"errors"
 	"testing"
 )
 
@@ -50,7 +49,7 @@ func TestFSM(t *testing.T) {
 	for _, tc := range invalidTests {
 		t.Run("invalid_"+tc.current+"_"+tc.event, func(t *testing.T) {
 			_, err := ab.Transition(tc.current, tc.event)
-			if !errors.Is(err, ab.ErrInvalidTransition) {
+			if err != ab.ErrInvalidTransition {
 				t.Fatalf("expected ab.ErrInvalidTransition, got %v", err)
 			}
 		})
@@ -73,7 +72,7 @@ func TestFSM(t *testing.T) {
 
 			// Try to apply any event to a terminal state
 			_, err := ab.Transition(state, ab.EventConfirm)
-			if !errors.Is(err, ab.ErrInvalidTransition) {
+			if err != ab.ErrInvalidTransition {
 				t.Fatalf("expected ab.ErrInvalidTransition for terminal state %s, got %v", state, err)
 			}
 		})
@@ -96,7 +95,7 @@ func TestFSM(t *testing.T) {
 	// Invalid state entirely
 	t.Run("invalid_state", func(t *testing.T) {
 		_, err := ab.Transition("UNKNOWN_STATE", ab.EventConfirm)
-		if !errors.Is(err, ab.ErrInvalidTransition) {
+		if err != ab.ErrInvalidTransition {
 			t.Fatalf("expected ab.ErrInvalidTransition for unknown state, got %v", err)
 		}
 	})

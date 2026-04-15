@@ -1,6 +1,6 @@
 package appointmentbooking
 
-import "errors"
+import "github.com/tinywasm/fmt"
 
 // States
 const (
@@ -41,7 +41,7 @@ var transitions = map[string]map[string]string{
 }
 
 // ErrInvalidTransition is returned when a transition is not allowed.
-var ErrInvalidTransition = errors.New("invalid transition")
+var ErrInvalidTransition = fmt.Err("invalid", "transition")
 
 // Transition returns the next state or an error if the transition is invalid.
 func Transition(current, event string) (string, error) {

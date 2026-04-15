@@ -2,7 +2,6 @@ package appointmentbooking
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/tinywasm/fmt"
@@ -125,7 +124,7 @@ func (s *schedulingService) UpsertWeeklyCalendar(ctx context.Context, cal WorkCa
 	// Must check if CalendarConfig exists first
 	_, err := s.repo.GetCalendarConfig(cal.TenantID, cal.StaffID)
 	if err != nil {
-		if errors.Is(err, ErrNotFound) {
+		if err == ErrNotFound {
 			return ErrCalendarConfigNotFound
 		}
 		return err
@@ -162,7 +161,7 @@ func (s *schedulingService) ListAvailability(ctx context.Context, tenantID, staf
 	// 1. Load WorkCalendarConfig
 	cfg, err := s.repo.GetCalendarConfig(tenantID, staffID)
 	if err != nil {
-		if errors.Is(err, ErrNotFound) {
+		if err == ErrNotFound {
 			return nil, ErrCalendarConfigNotFound
 		}
 		return nil, err
@@ -562,7 +561,7 @@ func (s *schedulingService) ExpirePendingReservations(ctx context.Context, tenan
 
 	rows, err := ReadAllReservation(qb)
 	if err != nil {
-		if errors.Is(err, orm.ErrNotFound) {
+		if err == orm.ErrNotFound {
 			return 0, nil
 		}
 		return 0, err

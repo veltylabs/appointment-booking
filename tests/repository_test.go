@@ -4,7 +4,6 @@ package tests
 
 import (
 	ab "github.com/veltylabs/appointment-booking"
-	"errors"
 	"testing"
 
 	"github.com/tinywasm/sqlite"
@@ -81,7 +80,7 @@ func TestGetEmployeeServiceConfig_NotFound(t *testing.T) {
 	repo := newTestRepo(t)
 
 	_, err := repo.GetEmployeeServiceConfig("non-existent")
-	if !errors.Is(err, ab.ErrNotFound) {
+	if err != ab.ErrNotFound {
 		t.Fatalf("Expected ab.ErrNotFound, got %v", err)
 	}
 }
@@ -135,7 +134,7 @@ func TestGetCalendarConfig_NotFound(t *testing.T) {
 	repo := newTestRepo(t)
 
 	_, err := repo.GetCalendarConfig("t1", "s1")
-	if !errors.Is(err, ab.ErrNotFound) {
+	if err != ab.ErrNotFound {
 		t.Fatalf("Expected ab.ErrNotFound, got %v", err)
 	}
 }
@@ -263,7 +262,7 @@ func TestUpdateReservationStatus_Conflict(t *testing.T) {
 
 	// Provide wrong revision
 	err := repo.UpdateReservationStatus(id, ab.StatusConfirmed, "u1", 12345, 99)
-	if !errors.Is(err, ab.ErrConflict) {
+	if err != ab.ErrConflict {
 		t.Fatalf("Expected ab.ErrConflict, got %v", err)
 	}
 }

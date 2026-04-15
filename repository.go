@@ -1,8 +1,6 @@
 package appointmentbooking
 
 import (
-	"errors"
-
 	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/orm"
 	"github.com/tinywasm/unixid"
@@ -57,7 +55,7 @@ func (r *Repository) GetReservation(id string) (Reservation, error) {
 	m := &Reservation{}
 	qb := r.db.Query(m).Where(Reservation_.ID).Eq(id)
 	got, err := ReadOneReservation(qb, m)
-	if errors.Is(err, orm.ErrNotFound) {
+	if err == orm.ErrNotFound {
 		return Reservation{}, ErrNotFound
 	}
 	if err != nil {
@@ -70,7 +68,7 @@ func (r *Repository) GetReservationTx(tx *orm.DB, tenantID, id string) (Reservat
 	m := &Reservation{}
 	qb := tx.Query(m).Where(Reservation_.ID).Eq(id).Where(Reservation_.TenantID).Eq(tenantID)
 	got, err := ReadOneReservation(qb, m)
-	if errors.Is(err, orm.ErrNotFound) {
+	if err == orm.ErrNotFound {
 		return Reservation{}, ErrNotFound
 	}
 	if err != nil {
@@ -123,7 +121,7 @@ func (r *Repository) UpdateReservationStatusTx(tx *orm.DB, id, status, updatedBy
 	current := &Reservation{}
 	qb := tx.Query(current).Where(Reservation_.ID).Eq(id)
 	got, err := ReadOneReservation(qb, current)
-	if errors.Is(err, orm.ErrNotFound) {
+	if err == orm.ErrNotFound {
 		return ErrNotFound
 	}
 	if err != nil {
@@ -191,7 +189,7 @@ func (r *Repository) GetEmployeeServiceConfig(id string) (EmployeeServiceConfig,
 	m := &EmployeeServiceConfig{}
 	qb := r.db.Query(m).Where(EmployeeServiceConfig_.ID).Eq(id)
 	got, err := ReadOneEmployeeServiceConfig(qb, m)
-	if errors.Is(err, orm.ErrNotFound) {
+	if err == orm.ErrNotFound {
 		return EmployeeServiceConfig{}, ErrNotFound
 	}
 	if err != nil {
@@ -231,10 +229,10 @@ func (r *Repository) UpsertCalendarConfig(cfg WorkCalendarConfig) error {
 		Where(WorkCalendarConfig_.TenantID).Eq(cfg.TenantID).
 		Where(WorkCalendarConfig_.StaffID).Eq(cfg.StaffID)
 	got, err := ReadOneWorkCalendarConfig(qb, existing)
-	if err != nil && !errors.Is(err, orm.ErrNotFound) {
+	if err != nil && err != orm.ErrNotFound {
 		return err
 	}
-	if errors.Is(err, orm.ErrNotFound) {
+	if err == orm.ErrNotFound {
 		// Does not exist — create
 		idHandler, err := unixid.NewUnixID()
 		if err != nil {
@@ -254,7 +252,7 @@ func (r *Repository) GetCalendarConfig(tenantID, staffID string) (WorkCalendarCo
 		Where(WorkCalendarConfig_.TenantID).Eq(tenantID).
 		Where(WorkCalendarConfig_.StaffID).Eq(staffID)
 	got, err := ReadOneWorkCalendarConfig(qb, m)
-	if errors.Is(err, orm.ErrNotFound) {
+	if err == orm.ErrNotFound {
 		return WorkCalendarConfig{}, ErrNotFound
 	}
 	if err != nil {
@@ -274,10 +272,10 @@ func (r *Repository) UpsertWeeklyCalendar(cal WorkCalendarWeekly) error {
 		Where(WorkCalendarWeekly_.StaffID).Eq(cal.StaffID).
 		Where(WorkCalendarWeekly_.DayOfWeek).Eq(cal.DayOfWeek)
 	got, err := ReadOneWorkCalendarWeekly(qb, existing)
-	if err != nil && !errors.Is(err, orm.ErrNotFound) {
+	if err != nil && err != orm.ErrNotFound {
 		return err
 	}
-	if errors.Is(err, orm.ErrNotFound) {
+	if err == orm.ErrNotFound {
 		idHandler, err := unixid.NewUnixID()
 		if err != nil {
 			return err

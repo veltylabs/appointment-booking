@@ -5,7 +5,6 @@ package tests
 import (
 	ab "github.com/veltylabs/appointment-booking"
 	"context"
-	"errors"
 	"testing"
 	"time"
 
@@ -104,7 +103,7 @@ func TestService_Back(t *testing.T) {
 			ActorID:  "u1",
 			Revision: 0, // Wrong revision, should be 1
 		})
-		if !errors.Is(err2, ab.ErrConflict) {
+		if err2 != ab.ErrConflict {
 			t.Fatalf("Second change should fail with ab.ErrConflict, got: %v", err2)
 		}
 
