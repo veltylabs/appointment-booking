@@ -1,11 +1,9 @@
 package appointmentbooking
 
 import (
-	"encoding/json"
-	"errors"
-	stdFmt "fmt"
-
 	"github.com/tinywasm/context"
+	"github.com/tinywasm/fmt"
+	"github.com/tinywasm/json"
 	"github.com/tinywasm/mcp"
 )
 
@@ -63,94 +61,108 @@ func (p *ReservationProvider) Tools() []mcp.Tool {
 	}
 }
 
-func decodeArgs(req mcp.Request) (map[string]any, error) {
-	var args map[string]any
-	if err := json.Unmarshal([]byte(req.Params.Arguments), &args); err != nil {
-		return nil, err
-	}
-	return args, nil
-}
-
 func errResult(msg string) *mcp.Result {
 	return &mcp.Result{IsError: true, Content: msg}
 }
 
 func (p *ReservationProvider) createReservation(ctx *context.Context, req mcp.Request) (*mcp.Result, error) {
-	args, err := decodeArgs(req)
-	if err != nil {
+	var args createReservationArgs
+	if err := req.Bind(&args); err != nil {
 		return errResult("invalid arguments"), nil
 	}
 	cmd := CreateReservationCmd{
-		TenantID:                str(args, "tenant_id"),
-		ClientID:                str(args, "client_id"),
-		CreatorUserID:           str(args, "creator_user_id"),
-		EmployeeServiceConfigID: str(args, "employee_service_config_id"),
-		SlotStartUTC:            i64(args, "slot_start_utc"),
-		Notes:                   str(args, "notes"),
-		RescheduledFromID:       str(args, "rescheduled_from_id"),
+		TenantID:                args.TenantID,
+		ClientID:                args.ClientID,
+		CreatorUserID:           args.CreatorUserID,
+		EmployeeServiceConfigID: args.EmployeeServiceConfigID,
+		SlotStartUTC:            args.SlotStartUTC,
+		Notes:                   args.Notes,
+		RescheduledFromID:       args.RescheduledFromID,
 	}
 	res, err := p.svc.CreateReservation(ToStd(ctx), cmd)
 	if err != nil {
-		if errors.Is(err, ErrSlotTaken) {
+		if err == ErrSlotTaken {
 			return errResult("The selected time slot is already taken"), nil
 		}
 		return errResult(err.Error()), nil
 	}
-	b, _ := json.Marshal(res)
-	return mcp.Text(string(b)), nil
+	var buf fmt.Builder
+	if err := json.Encode(&res, &buf); err != nil {
+		return errResult(err.Error()), nil
+	}
+	return mcp.Text(buf.String()), nil
 }
 
 func (p *ReservationProvider) getReservation(ctx *context.Context, req mcp.Request) (*mcp.Result, error) {
-	args, err := decodeArgs(req)
-	if err != nil {
+	var args getReservationArgs
+	if err := req.Bind(&args); err != nil {
 		return errResult("invalid arguments"), nil
 	}
-	res, err := p.svc.GetReservation(ToStd(ctx), str(args, "tenant_id"), str(args, "id"))
+	res, err := p.svc.GetReservation(ToStd(ctx), args.TenantID, args.ID)
 	if err != nil {
 		return errResult(err.Error()), nil
 	}
-	b, _ := json.Marshal(res)
-	return mcp.Text(string(b)), nil
+	var buf fmt.Builder
+	if err := json.Encode(&res, &buf); err != nil {
+		return errResult(err.Error()), nil
+	}
+	return mcp.Text(buf.String()), nil
 }
 
 func (p *ReservationProvider) listReservationsByStaff(ctx *context.Context, req mcp.Request) (*mcp.Result, error) {
-	args, err := decodeArgs(req)
-	if err != nil {
+	var args listReservationsByStaffArgs
+	if err := req.Bind(&args); err != nil {
 		return errResult("invalid arguments"), nil
 	}
-	res, err := p.svc.ListReservationsByStaff(ToStd(ctx), str(args, "tenant_id"), str(args, "staff_id"), i64(args, "from"), i64(args, "to"))
+	res, err := p.svc.ListReservationsByStaff(ToStd(ctx), args.TenantID, args.StaffID, args.From, args.To)
 	if err != nil {
 		return errResult(err.Error()), nil
 	}
-	b, _ := json.Marshal(res)
-	return mcp.Text(string(b)), nil
+	var list ReservationList
+	for _, r := range res {
+		r2 := r
+		list = append(list, &r2)
+	}
+	var buf fmt.Builder
+	if err := json.Encode(&list, &buf); err != nil {
+		return errResult(err.Error()), nil
+	}
+	return mcp.Text(buf.String()), nil
 }
 
 func (p *ReservationProvider) listReservationsByClient(ctx *context.Context, req mcp.Request) (*mcp.Result, error) {
-	args, err := decodeArgs(req)
-	if err != nil {
+	var args listReservationsByClientArgs
+	if err := req.Bind(&args); err != nil {
 		return errResult("invalid arguments"), nil
 	}
-	res, err := p.svc.ListReservationsByClient(ToStd(ctx), str(args, "tenant_id"), str(args, "client_id"))
+	res, err := p.svc.ListReservationsByClient(ToStd(ctx), args.TenantID, args.ClientID)
 	if err != nil {
 		return errResult(err.Error()), nil
 	}
-	b, _ := json.Marshal(res)
-	return mcp.Text(string(b)), nil
+	var list ReservationList
+	for _, r := range res {
+		r2 := r
+		list = append(list, &r2)
+	}
+	var buf fmt.Builder
+	if err := json.Encode(&list, &buf); err != nil {
+		return errResult(err.Error()), nil
+	}
+	return mcp.Text(buf.String()), nil
 }
 
 func (p *ReservationProvider) changeReservationStatus(ctx *context.Context, req mcp.Request) (*mcp.Result, error) {
-	args, err := decodeArgs(req)
-	if err != nil {
+	var args changeReservationStatusArgs
+	if err := req.Bind(&args); err != nil {
 		return errResult("invalid arguments"), nil
 	}
 	cmd := ChangeStatusCmd{
-		TenantID:  str(args, "tenant_id"),
-		ID:        str(args, "id"),
-		Event:     str(args, "event"),
-		ActorID:   str(args, "actor_id"),
-		PaymentID: str(args, "payment_id"),
-		Revision:  int(i64(args, "revision")),
+		TenantID:  args.TenantID,
+		ID:        args.ID,
+		Event:     args.Event,
+		ActorID:   args.ActorID,
+		PaymentID: args.PaymentID,
+		Revision:  int(args.Revision),
 	}
 	if err := p.svc.ChangeReservationStatus(ToStd(ctx), cmd); err != nil {
 		return errResult(err.Error()), nil
@@ -159,15 +171,15 @@ func (p *ReservationProvider) changeReservationStatus(ctx *context.Context, req 
 }
 
 func (p *ReservationProvider) expirePendingReservations(ctx *context.Context, req mcp.Request) (*mcp.Result, error) {
-	args, err := decodeArgs(req)
-	if err != nil {
+	var args expirePendingReservationsArgs
+	if err := req.Bind(&args); err != nil {
 		return errResult("invalid arguments"), nil
 	}
-	count, err := p.svc.ExpirePendingReservations(ToStd(ctx), str(args, "tenant_id"), i64(args, "before"))
+	count, err := p.svc.ExpirePendingReservations(ToStd(ctx), args.TenantID, args.Before)
 	if err != nil {
 		return errResult(err.Error()), nil
 	}
-	return mcp.Text(stdFmt.Sprintf("Expired %d reservations", count)), nil
+	return mcp.Text(fmt.Sprintf("Expired %d reservations", count)), nil
 }
 
 // CalendarProvider implements mcp.ToolProvider for calendar tools.
@@ -218,15 +230,15 @@ func (p *CalendarProvider) Tools() []mcp.Tool {
 }
 
 func (p *CalendarProvider) upsertCalendarConfig(ctx *context.Context, req mcp.Request) (*mcp.Result, error) {
-	args, err := decodeArgs(req)
-	if err != nil {
+	var args upsertCalendarConfigArgs
+	if err := req.Bind(&args); err != nil {
 		return errResult("invalid arguments"), nil
 	}
 	cfg := WorkCalendarConfig{
-		TenantID: str(args, "tenant_id"),
-		StaffID:  str(args, "staff_id"),
-		Timezone: str(args, "timezone"),
-		IsActive: boolVal(args, "is_active"),
+		TenantID: args.TenantID,
+		StaffID:  args.StaffID,
+		Timezone: args.Timezone,
+		IsActive: args.IsActive,
 	}
 	if err := p.svc.UpsertCalendarConfig(ToStd(ctx), cfg); err != nil {
 		return errResult(err.Error()), nil
@@ -235,22 +247,22 @@ func (p *CalendarProvider) upsertCalendarConfig(ctx *context.Context, req mcp.Re
 }
 
 func (p *CalendarProvider) upsertWeeklyCalendar(ctx *context.Context, req mcp.Request) (*mcp.Result, error) {
-	args, err := decodeArgs(req)
-	if err != nil {
+	var args upsertWeeklyCalendarArgs
+	if err := req.Bind(&args); err != nil {
 		return errResult("invalid arguments"), nil
 	}
 	cal := WorkCalendarWeekly{
-		TenantID:    str(args, "tenant_id"),
-		StaffID:     str(args, "staff_id"),
-		DayOfWeek:   i64(args, "day_of_week"),
-		WorkStart:   i64(args, "work_start"),
-		WorkFinish:  i64(args, "work_finish"),
-		BreakStart:  i64(args, "break_start"),
-		BreakFinish: i64(args, "break_finish"),
-		IsActive:    boolVal(args, "is_active"),
+		TenantID:    args.TenantID,
+		StaffID:     args.StaffID,
+		DayOfWeek:   args.DayOfWeek,
+		WorkStart:   args.WorkStart,
+		WorkFinish:  args.WorkFinish,
+		BreakStart:  args.BreakStart,
+		BreakFinish: args.BreakFinish,
+		IsActive:    args.IsActive,
 	}
 	if err := p.svc.UpsertWeeklyCalendar(ToStd(ctx), cal); err != nil {
-		if errors.Is(err, ErrCalendarConfigNotFound) {
+		if err == ErrCalendarConfigNotFound {
 			return errResult("Set the staff timezone first using upsert_calendar_config"), nil
 		}
 		return errResult(err.Error()), nil
@@ -259,18 +271,18 @@ func (p *CalendarProvider) upsertWeeklyCalendar(ctx *context.Context, req mcp.Re
 }
 
 func (p *CalendarProvider) addCalendarException(ctx *context.Context, req mcp.Request) (*mcp.Result, error) {
-	args, err := decodeArgs(req)
-	if err != nil {
+	var args addCalendarExceptionArgs
+	if err := req.Bind(&args); err != nil {
 		return errResult("invalid arguments"), nil
 	}
 	exc := WorkCalendarException{
-		TenantID:      str(args, "tenant_id"),
-		StaffID:       str(args, "staff_id"),
-		SpecificDate:  i64(args, "specific_date"),
-		ExceptionType: str(args, "exception_type"),
-		StartTime:     i64(args, "start_time"),
-		EndTime:       i64(args, "end_time"),
-		Notes:         str(args, "notes"),
+		TenantID:      args.TenantID,
+		StaffID:       args.StaffID,
+		SpecificDate:  args.SpecificDate,
+		ExceptionType: args.ExceptionType,
+		StartTime:     args.StartTime,
+		EndTime:       args.EndTime,
+		Notes:         args.Notes,
 	}
 	if err := p.svc.AddException(ToStd(ctx), exc); err != nil {
 		return errResult(err.Error()), nil
@@ -279,54 +291,36 @@ func (p *CalendarProvider) addCalendarException(ctx *context.Context, req mcp.Re
 }
 
 func (p *CalendarProvider) removeCalendarException(ctx *context.Context, req mcp.Request) (*mcp.Result, error) {
-	args, err := decodeArgs(req)
-	if err != nil {
+	var args removeCalendarExceptionArgs
+	if err := req.Bind(&args); err != nil {
 		return errResult("invalid arguments"), nil
 	}
-	if err := p.svc.RemoveException(ToStd(ctx), str(args, "tenant_id"), str(args, "exception_id")); err != nil {
+	if err := p.svc.RemoveException(ToStd(ctx), args.TenantID, args.ExceptionID); err != nil {
 		return errResult(err.Error()), nil
 	}
 	return mcp.Text("Calendar exception removed successfully"), nil
 }
 
 func (p *CalendarProvider) listAvailability(ctx *context.Context, req mcp.Request) (*mcp.Result, error) {
-	args, err := decodeArgs(req)
-	if err != nil {
+	var args listAvailabilityArgs
+	if err := req.Bind(&args); err != nil {
 		return errResult("invalid arguments"), nil
 	}
-	slots, err := p.svc.ListAvailability(ToStd(ctx), str(args, "tenant_id"), str(args, "staff_id"), str(args, "config_id"), i64(args, "from"), i64(args, "to"))
+	slots, err := p.svc.ListAvailability(ToStd(ctx), args.TenantID, args.StaffID, args.ConfigID, args.From, args.To)
 	if err != nil {
-		if errors.Is(err, ErrCalendarConfigNotFound) {
+		if err == ErrCalendarConfigNotFound {
 			return errResult("Set the staff timezone first using upsert_calendar_config"), nil
 		}
 		return errResult(err.Error()), nil
 	}
-	b, err := json.Marshal(slots)
-	if err != nil {
+	var list TimeSlotList
+	for _, s := range slots {
+		s2 := s
+		list = append(list, &s2)
+	}
+	var buf fmt.Builder
+	if err := json.Encode(&list, &buf); err != nil {
 		return errResult(err.Error()), nil
 	}
-	return mcp.Text(string(b)), nil
-}
-
-// arg helpers
-func str(args map[string]any, key string) string {
-	v, _ := args[key].(string)
-	return v
-}
-
-func i64(args map[string]any, key string) int64 {
-	switch v := args[key].(type) {
-	case float64:
-		return int64(v)
-	case int64:
-		return v
-	case int:
-		return int64(v)
-	}
-	return 0
-}
-
-func boolVal(args map[string]any, key string) bool {
-	v, _ := args[key].(bool)
-	return v
+	return mcp.Text(buf.String()), nil
 }
