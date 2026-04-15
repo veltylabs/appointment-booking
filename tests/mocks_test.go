@@ -1,7 +1,7 @@
 package tests
 
 import (
-	"context"
+	tinyctx "github.com/tinywasm/context"
 	ab "github.com/veltylabs/appointment-booking"
 )
 
@@ -37,7 +37,7 @@ type MockEventPublisher struct {
 	Err             error
 }
 
-func (m *MockEventPublisher) Publish(ctx context.Context, event string, payload any) error {
+func (m *MockEventPublisher) Publish(ctx *tinyctx.Context, event string, payload any) error {
 	m.PublishedEvents = append(m.PublishedEvents, event)
 	return m.Err
 }

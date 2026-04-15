@@ -1,17 +1,17 @@
 package tests
 
 import (
-	"context"
+	tinyctx "github.com/tinywasm/context"
 	"strings"
 	"testing"
-	"time"
+	tinytime "github.com/tinywasm/time"
 
 	"github.com/tinywasm/orm"
 	ab "github.com/veltylabs/appointment-booking"
 )
 
 func RunServiceValidationTests(t *testing.T, s ab.SchedulingService, repo *ab.Repository, db *orm.DB, deps ab.Deps) {
-	ctx := context.Background()
+	ctx := tinyctx.Background()
 
 	t.Run("UC-01_CreateReservation_InactiveConfig", func(t *testing.T) {
 		cfg := ab.EmployeeServiceConfig{
@@ -140,8 +140,7 @@ func RunServiceValidationTests(t *testing.T, s ab.SchedulingService, repo *ab.Re
 			IsActive: true,
 		})
 
-		utcDate := time.Unix(slotStart, 0).UTC()
-		dow := int(utcDate.Weekday())
+		dow := tinytime.Weekday(slotStart)
 
 		s.UpsertWeeklyCalendar(ctx, ab.WorkCalendarWeekly{
 			TenantID:   tenant,
@@ -155,7 +154,7 @@ func RunServiceValidationTests(t *testing.T, s ab.SchedulingService, repo *ab.Re
 	}
 
 	t.Run("UC-05_ChangeReservationStatus_Cancel_FromPending", func(t *testing.T) {
-		slot := time.Date(2025, 2, 1, 10, 0, 0, 0, time.UTC).Unix()
+		slot := tinytime.Date(2025, 2, 1, 10, 0, 0, 0)
 		cfgID := setupValidConfig("t_uc05", "s_uc05", slot)
 
 		res, err := s.CreateReservation(ctx, ab.CreateReservationCmd{
@@ -201,7 +200,7 @@ func RunServiceValidationTests(t *testing.T, s ab.SchedulingService, repo *ab.Re
 	})
 
 	t.Run("UC-06_ChangeReservationStatus_Complete_FromConfirmed", func(t *testing.T) {
-		slot := time.Date(2025, 2, 2, 10, 0, 0, 0, time.UTC).Unix()
+		slot := tinytime.Date(2025, 2, 2, 10, 0, 0, 0)
 		cfgID := setupValidConfig("t_uc06", "s_uc06", slot)
 
 		res, _ := s.CreateReservation(ctx, ab.CreateReservationCmd{
@@ -252,8 +251,8 @@ func RunServiceValidationTests(t *testing.T, s ab.SchedulingService, repo *ab.Re
 	})
 
 	t.Run("UC-07_CreateReservation_Reschedule", func(t *testing.T) {
-		slot1 := time.Date(2025, 2, 3, 10, 0, 0, 0, time.UTC).Unix()
-		slot2 := time.Date(2025, 2, 3, 11, 0, 0, 0, time.UTC).Unix()
+		slot1 := tinytime.Date(2025, 2, 3, 10, 0, 0, 0)
+		slot2 := tinytime.Date(2025, 2, 3, 11, 0, 0, 0)
 		cfgID := setupValidConfig("t_uc07", "s_uc07", slot1)
 
 		res1, _ := s.CreateReservation(ctx, ab.CreateReservationCmd{
@@ -303,7 +302,7 @@ func RunServiceValidationTests(t *testing.T, s ab.SchedulingService, repo *ab.Re
 	})
 
 	t.Run("UC-13_GetReservation_CrossTenantIsolation", func(t *testing.T) {
-		slot := time.Date(2025, 2, 4, 10, 0, 0, 0, time.UTC).Unix()
+		slot := tinytime.Date(2025, 2, 4, 10, 0, 0, 0)
 		cfgID := setupValidConfig("T1", "s_uc13", slot)
 
 		res, _ := s.CreateReservation(ctx, ab.CreateReservationCmd{
@@ -321,7 +320,7 @@ func RunServiceValidationTests(t *testing.T, s ab.SchedulingService, repo *ab.Re
 	})
 
 	t.Run("UC-14_ChangeReservationStatus_CrossTenantIsolation", func(t *testing.T) {
-		slot := time.Date(2025, 2, 5, 10, 0, 0, 0, time.UTC).Unix()
+		slot := tinytime.Date(2025, 2, 5, 10, 0, 0, 0)
 		cfgID := setupValidConfig("T1", "s_uc14", slot)
 
 		res, _ := s.CreateReservation(ctx, ab.CreateReservationCmd{
@@ -357,7 +356,7 @@ func RunServiceValidationTests(t *testing.T, s ab.SchedulingService, repo *ab.Re
 	})
 
 	t.Run("UC-18_ChangeReservationStatus_ConfirmWithPaymentID", func(t *testing.T) {
-		slot := time.Date(2025, 2, 6, 10, 0, 0, 0, time.UTC).Unix()
+		slot := tinytime.Date(2025, 2, 6, 10, 0, 0, 0)
 		cfgID := setupValidConfig("t_uc18", "s_uc18", slot)
 
 		res, _ := s.CreateReservation(ctx, ab.CreateReservationCmd{
@@ -387,8 +386,8 @@ func RunServiceValidationTests(t *testing.T, s ab.SchedulingService, repo *ab.Re
 	})
 
 	t.Run("UC-19_ListReservationsByStaff_ViaService", func(t *testing.T) {
-		slot1 := time.Date(2025, 2, 7, 10, 0, 0, 0, time.UTC).Unix()
-		slot2 := time.Date(2025, 2, 7, 11, 0, 0, 0, time.UTC).Unix()
+		slot1 := tinytime.Date(2025, 2, 7, 10, 0, 0, 0)
+		slot2 := tinytime.Date(2025, 2, 7, 11, 0, 0, 0)
 		cfgID := setupValidConfig("t_uc19", "s_uc19", slot1)
 
 		s.CreateReservation(ctx, ab.CreateReservationCmd{
@@ -398,7 +397,7 @@ func RunServiceValidationTests(t *testing.T, s ab.SchedulingService, repo *ab.Re
 			EmployeeServiceConfigID: cfgID,
 			SlotStartUTC:            slot1,
 		})
-		time.Sleep(time.Millisecond) // avoid nanosecond collision if any
+		 for i := 0; i < 1000000; i++ {} // busy wait alternative to avoid nanosecond collision
 		s.CreateReservation(ctx, ab.CreateReservationCmd{
 			TenantID:                "t_uc19",
 			ClientID:                "c2",
@@ -407,8 +406,8 @@ func RunServiceValidationTests(t *testing.T, s ab.SchedulingService, repo *ab.Re
 			SlotStartUTC:            slot2,
 		})
 
-		from := time.Date(2025, 2, 7, 0, 0, 0, 0, time.UTC).Unix()
-		to := time.Date(2025, 2, 8, 0, 0, 0, 0, time.UTC).Unix()
+		from := tinytime.Date(2025, 2, 7, 0, 0, 0, 0)
+		to := tinytime.Date(2025, 2, 8, 0, 0, 0, 0)
 
 		res, err := s.ListReservationsByStaff(ctx, "t_uc19", "s_uc19", from, to)
 		if err != nil {
@@ -423,7 +422,7 @@ func RunServiceValidationTests(t *testing.T, s ab.SchedulingService, repo *ab.Re
 	})
 
 	t.Run("UC-20_ExpirePendingReservations_NothingToExpire", func(t *testing.T) {
-		slot := time.Date(2025, 2, 8, 10, 0, 0, 0, time.UTC).Unix()
+		slot := tinytime.Date(2025, 2, 8, 10, 0, 0, 0)
 		cfgID := setupValidConfig("t_uc20", "s_uc20", slot)
 
 		s.CreateReservation(ctx, ab.CreateReservationCmd{

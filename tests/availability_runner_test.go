@@ -1,16 +1,16 @@
 package tests
 
 import (
-	"context"
+	tinyctx "github.com/tinywasm/context"
 	"testing"
-	"time"
+	tinytime "github.com/tinywasm/time"
 
 	"github.com/tinywasm/orm"
 	ab "github.com/veltylabs/appointment-booking"
 )
 
 func RunAvailabilityTests(t *testing.T, s ab.SchedulingService, repo *ab.Repository, db *orm.DB) {
-	ctx := context.Background()
+	ctx := tinyctx.Background()
 
 	setupValidConfig := func(tenant, staff string, slotStart int64) string {
 		cfg := ab.EmployeeServiceConfig{
@@ -31,8 +31,7 @@ func RunAvailabilityTests(t *testing.T, s ab.SchedulingService, repo *ab.Reposit
 			IsActive: true,
 		})
 
-		utcDate := time.Unix(slotStart, 0).UTC()
-		dow := int(utcDate.Weekday())
+		dow := tinytime.Weekday(slotStart)
 
 		s.UpsertWeeklyCalendar(ctx, ab.WorkCalendarWeekly{
 			TenantID:   tenant,
@@ -46,10 +45,10 @@ func RunAvailabilityTests(t *testing.T, s ab.SchedulingService, repo *ab.Reposit
 	}
 
 	t.Run("UC-08_ListAvailability_HolidayException", func(t *testing.T) {
-		slot := time.Date(2025, 3, 1, 10, 0, 0, 0, time.UTC).Unix()
+		slot := tinytime.Date(2025, 3, 1, 10, 0, 0, 0)
 		cfgID := setupValidConfig("t_uc08", "s_uc08", slot)
 
-		dayStart := time.Date(2025, 3, 1, 0, 0, 0, 0, time.UTC).Unix()
+		dayStart := tinytime.Date(2025, 3, 1, 0, 0, 0, 0)
 		s.AddException(ctx, ab.WorkCalendarException{
 			TenantID:      "t_uc08",
 			StaffID:       "s_uc08",
@@ -67,10 +66,10 @@ func RunAvailabilityTests(t *testing.T, s ab.SchedulingService, repo *ab.Reposit
 	})
 
 	t.Run("UC-09_ListAvailability_BlockedException", func(t *testing.T) {
-		slot := time.Date(2025, 3, 2, 10, 0, 0, 0, time.UTC).Unix()
+		slot := tinytime.Date(2025, 3, 2, 10, 0, 0, 0)
 		cfgID := setupValidConfig("t_uc09", "s_uc09", slot)
 
-		dayStart := time.Date(2025, 3, 2, 0, 0, 0, 0, time.UTC).Unix()
+		dayStart := tinytime.Date(2025, 3, 2, 0, 0, 0, 0)
 		s.AddException(ctx, ab.WorkCalendarException{
 			TenantID:      "t_uc09",
 			StaffID:       "s_uc09",
@@ -96,10 +95,10 @@ func RunAvailabilityTests(t *testing.T, s ab.SchedulingService, repo *ab.Reposit
 	})
 
 	t.Run("UC-10_ListAvailability_SpecialHoursException", func(t *testing.T) {
-		slot := time.Date(2025, 3, 3, 10, 0, 0, 0, time.UTC).Unix()
+		slot := tinytime.Date(2025, 3, 3, 10, 0, 0, 0)
 		cfgID := setupValidConfig("t_uc10", "s_uc10", slot)
 
-		dayStart := time.Date(2025, 3, 3, 0, 0, 0, 0, time.UTC).Unix()
+		dayStart := tinytime.Date(2025, 3, 3, 0, 0, 0, 0)
 		s.AddException(ctx, ab.WorkCalendarException{
 			TenantID:      "t_uc10",
 			StaffID:       "s_uc10",
@@ -127,16 +126,16 @@ func RunAvailabilityTests(t *testing.T, s ab.SchedulingService, repo *ab.Reposit
 	})
 
 	t.Run("UC-11_ListAvailability_BreakTime", func(t *testing.T) {
-		slot := time.Date(2025, 3, 4, 10, 0, 0, 0, time.UTC).Unix()
+		slot := tinytime.Date(2025, 3, 4, 10, 0, 0, 0)
 		cfgID := setupValidConfig("t_uc11", "s_uc11", slot)
 
-		dayStart := time.Date(2025, 3, 4, 0, 0, 0, 0, time.UTC).Unix()
+		dayStart := tinytime.Date(2025, 3, 4, 0, 0, 0, 0)
 
 		// Update weekly config to add break
 		s.UpsertWeeklyCalendar(ctx, ab.WorkCalendarWeekly{
 			TenantID:    "t_uc11",
 			StaffID:     "s_uc11",
-			DayOfWeek:   int64(time.Unix(slot, 0).UTC().Weekday()),
+			DayOfWeek:   int64(tinytime.Weekday(slot)),
 			WorkStart:   540,  // 09:00
 			WorkFinish:  1020, // 17:00
 			BreakStart:  720,  // 12:00
@@ -166,7 +165,7 @@ func RunAvailabilityTests(t *testing.T, s ab.SchedulingService, repo *ab.Reposit
 	})
 
 	t.Run("UC-16_ListAvailability_InactiveCalendarConfig", func(t *testing.T) {
-		slot := time.Date(2025, 3, 6, 10, 0, 0, 0, time.UTC).Unix()
+		slot := tinytime.Date(2025, 3, 6, 10, 0, 0, 0)
 		cfgID := setupValidConfig("t_uc16", "s_uc16", slot)
 
 		s.UpsertCalendarConfig(ctx, ab.WorkCalendarConfig{
@@ -176,7 +175,7 @@ func RunAvailabilityTests(t *testing.T, s ab.SchedulingService, repo *ab.Reposit
 			IsActive: false, // inactive
 		})
 
-		dayStart := time.Date(2025, 3, 6, 0, 0, 0, 0, time.UTC).Unix()
+		dayStart := tinytime.Date(2025, 3, 6, 0, 0, 0, 0)
 		slots, err := s.ListAvailability(ctx, "t_uc16", "s_uc16", cfgID, dayStart, dayStart+86400)
 		if err != nil {
 			t.Fatalf("ListAvailability: %v", err)
@@ -187,10 +186,10 @@ func RunAvailabilityTests(t *testing.T, s ab.SchedulingService, repo *ab.Reposit
 	})
 
 	t.Run("UC-17_CreateReservation_SlotOutsideWorkHours", func(t *testing.T) {
-		slot := time.Date(2025, 3, 7, 10, 0, 0, 0, time.UTC).Unix() // 10:00 UTC (Work hours 09:00 - 17:00)
+		slot := tinytime.Date(2025, 3, 7, 10, 0, 0, 0) // 10:00 UTC (Work hours 09:00 - 17:00)
 		cfgID := setupValidConfig("t_uc17", "s_uc17", slot)
 
-		dayStart := time.Date(2025, 3, 7, 0, 0, 0, 0, time.UTC).Unix()
+		dayStart := tinytime.Date(2025, 3, 7, 0, 0, 0, 0)
 		midnightSlot := dayStart // 00:00 UTC, which is outside 09:00 - 17:00
 
 		_, err := s.CreateReservation(ctx, ab.CreateReservationCmd{

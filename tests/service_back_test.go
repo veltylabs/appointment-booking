@@ -4,9 +4,9 @@ package tests
 
 import (
 	ab "github.com/veltylabs/appointment-booking"
-	"context"
+	tinyctx "github.com/tinywasm/context"
 	"testing"
-	"time"
+	tinytime "github.com/tinywasm/time"
 
 	"github.com/tinywasm/sqlite"
 )
@@ -38,7 +38,7 @@ func TestService_Back(t *testing.T) {
 
 	// Run integration/concurrency specific tests
 	t.Run("Integration_Concurrency", func(t *testing.T) {
-		ctx := context.Background()
+		ctx := tinyctx.Background()
 
 		// Setup config
 		cfg := ab.EmployeeServiceConfig{
@@ -69,8 +69,8 @@ func TestService_Back(t *testing.T) {
 			IsActive:  true,
 		})
 
-		targetDay := time.Date(2025, 1, 9, 0, 0, 0, 0, time.UTC) // Jan 9, 2025 is Thursday
-		slotStartUTC := targetDay.Unix() + 540*60
+		targetDay := tinytime.Date(2025, 1, 9, 0, 0, 0, 0) // Jan 9, 2025 is Thursday
+		slotStartUTC := targetDay + 540*60
 
 		res, err := s.CreateReservation(ctx, ab.CreateReservationCmd{
 			TenantID:                "t99",
