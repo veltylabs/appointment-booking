@@ -1,8 +1,7 @@
 package appointmentbooking
 
 import (
-	"context"
-	"time"
+	tinyctx "github.com/tinywasm/context"
 
 	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/orm"
@@ -43,26 +42,26 @@ type DirectoryReader interface {
 
 // EventPublisher delivers domain events to other modules or infrastructure.
 type EventPublisher interface {
-	Publish(ctx context.Context, event string, payload any) error
+	Publish(ctx *tinyctx.Context, event string, payload any) error
 }
 
 type SchedulingService interface {
 	// Calendar management
-	UpsertCalendarConfig(ctx context.Context, cfg WorkCalendarConfig) error
-	UpsertWeeklyCalendar(ctx context.Context, cal WorkCalendarWeekly) error
-	AddException(ctx context.Context, exc WorkCalendarException) error
-	RemoveException(ctx context.Context, tenantID, exceptionID string) error
+	UpsertCalendarConfig(ctx *tinyctx.Context, cfg WorkCalendarConfig) error
+	UpsertWeeklyCalendar(ctx *tinyctx.Context, cal WorkCalendarWeekly) error
+	AddException(ctx *tinyctx.Context, exc WorkCalendarException) error
+	RemoveException(ctx *tinyctx.Context, tenantID, exceptionID string) error
 
 	// Availability
-	ListAvailability(ctx context.Context, tenantID, staffID, configID string, from, to int64) ([]TimeSlot, error)
+	ListAvailability(ctx *tinyctx.Context, tenantID, staffID, configID string, from, to int64) ([]TimeSlot, error)
 
 	// Reservations
-	CreateReservation(ctx context.Context, cmd CreateReservationCmd) (Reservation, error)
-	GetReservation(ctx context.Context, tenantID, id string) (Reservation, error)
-	ListReservationsByStaff(ctx context.Context, tenantID, staffID string, from, to int64) ([]Reservation, error)
-	ListReservationsByClient(ctx context.Context, tenantID, clientID string) ([]Reservation, error)
-	ChangeReservationStatus(ctx context.Context, cmd ChangeStatusCmd) error
-	ExpirePendingReservations(ctx context.Context, tenantID string, before int64) (int, error)
+	CreateReservation(ctx *tinyctx.Context, cmd CreateReservationCmd) (Reservation, error)
+	GetReservation(ctx *tinyctx.Context, tenantID, id string) (Reservation, error)
+	ListReservationsByStaff(ctx *tinyctx.Context, tenantID, staffID string, from, to int64) ([]Reservation, error)
+	ListReservationsByClient(ctx *tinyctx.Context, tenantID, clientID string) ([]Reservation, error)
+	ChangeReservationStatus(ctx *tinyctx.Context, cmd ChangeStatusCmd) error
+	ExpirePendingReservations(ctx *tinyctx.Context, tenantID string, before int64) (int, error)
 }
 
 type CreateReservationCmd struct {
@@ -116,11 +115,11 @@ func New(db *orm.DB, deps Deps) (SchedulingService, error) {
 	}, nil
 }
 
-func (s *schedulingService) UpsertCalendarConfig(ctx context.Context, cfg WorkCalendarConfig) error {
+func (s *schedulingService) UpsertCalendarConfig(ctx *tinyctx.Context, cfg WorkCalendarConfig) error {
 	return s.repo.UpsertCalendarConfig(cfg)
 }
 
-func (s *schedulingService) UpsertWeeklyCalendar(ctx context.Context, cal WorkCalendarWeekly) error {
+func (s *schedulingService) UpsertWeeklyCalendar(ctx *tinyctx.Context, cal WorkCalendarWeekly) error {
 	// Must check if CalendarConfig exists first
 	_, err := s.repo.GetCalendarConfig(cal.TenantID, cal.StaffID)
 	if err != nil {
@@ -133,31 +132,20 @@ func (s *schedulingService) UpsertWeeklyCalendar(ctx context.Context, cal WorkCa
 	return s.repo.UpsertWeeklyCalendar(cal)
 }
 
-func (s *schedulingService) AddException(ctx context.Context, exc WorkCalendarException) error {
+func (s *schedulingService) AddException(ctx *tinyctx.Context, exc WorkCalendarException) error {
 	return s.repo.InsertException(exc)
 }
 
-func (s *schedulingService) RemoveException(ctx context.Context, tenantID, exceptionID string) error {
+func (s *schedulingService) RemoveException(ctx *tinyctx.Context, tenantID, exceptionID string) error {
 	return s.repo.DeleteException(tenantID, exceptionID)
 }
 
 // LocalIntToUnixUTC interprets localInt as minutes from midnight on the given date (UTC midnight) in the given tz.
 func LocalIntToUnixUTC(date int64, localInt int, tz string) int64 {
-	loc, err := time.LoadLocation(tz)
-	if err != nil {
-		loc = time.UTC
-	}
-	// date is UTC midnight. We want the same calendar day in the local timezone.
-	utcDate := time.Unix(date, 0).UTC()
-
-	hour := localInt / 60
-	minute := localInt % 60
-
-	localTime := time.Date(utcDate.Year(), utcDate.Month(), utcDate.Day(), hour, minute, 0, 0, loc)
-	return localTime.Unix()
+	return tinytime.LocalMinutesToUnixUTC(date, localInt, tz)
 }
 
-func (s *schedulingService) ListAvailability(ctx context.Context, tenantID, staffID, configID string, from, to int64) ([]TimeSlot, error) {
+func (s *schedulingService) ListAvailability(ctx *tinyctx.Context, tenantID, staffID, configID string, from, to int64) ([]TimeSlot, error) {
 	// 1. Load WorkCalendarConfig
 	cfg, err := s.repo.GetCalendarConfig(tenantID, staffID)
 	if err != nil {
@@ -221,8 +209,7 @@ func (s *schedulingService) ListAvailability(ctx context.Context, tenantID, staf
 	// 6. For each day D in [from, to] (assuming from and to are midnight UTC timestamps)
 	// We increment by 1 day (86400 seconds)
 	for d := from; d <= to; d += 86400 {
-		tDate := time.Unix(d, 0).UTC()
-		dow := int(tDate.Weekday())
+		dow := tinytime.Weekday(d)
 
 		weekly, hasWeekly := activeWeeklies[dow]
 		if !hasWeekly {
@@ -330,7 +317,7 @@ func (s *schedulingService) ListAvailability(ctx context.Context, tenantID, staf
 	return slots, nil
 }
 
-func (s *schedulingService) CreateReservation(ctx context.Context, cmd CreateReservationCmd) (Reservation, error) {
+func (s *schedulingService) CreateReservation(ctx *tinyctx.Context, cmd CreateReservationCmd) (Reservation, error) {
 	// 1. Load EmployeeServiceConfig
 	empSvcCfg, err := s.repo.GetEmployeeServiceConfig(cmd.EmployeeServiceConfigID)
 	if err != nil {
@@ -369,8 +356,7 @@ func (s *schedulingService) CreateReservation(ctx context.Context, cmd CreateRes
 
 	// 5. Check availability
 	// Get availability for the target day (midnight UTC)
-	utcDate := time.Unix(cmd.SlotStartUTC, 0).UTC()
-	targetDay := time.Date(utcDate.Year(), utcDate.Month(), utcDate.Day(), 0, 0, 0, 0, time.UTC).Unix()
+	targetDay := tinytime.MidnightUTC(cmd.SlotStartUTC)
 
 	// Broaden the search by one day on each side to account for timezone boundary differences
 	fromDay := targetDay - 86400
@@ -468,7 +454,7 @@ func (s *schedulingService) CreateReservation(ctx context.Context, cmd CreateRes
 	return newReservation, nil
 }
 
-func (s *schedulingService) GetReservation(ctx context.Context, tenantID, id string) (Reservation, error) {
+func (s *schedulingService) GetReservation(ctx *tinyctx.Context, tenantID, id string) (Reservation, error) {
 	res, err := s.repo.GetReservation(id)
 	if err != nil {
 		return Reservation{}, err
@@ -479,15 +465,15 @@ func (s *schedulingService) GetReservation(ctx context.Context, tenantID, id str
 	return res, nil
 }
 
-func (s *schedulingService) ListReservationsByStaff(ctx context.Context, tenantID, staffID string, from, to int64) ([]Reservation, error) {
+func (s *schedulingService) ListReservationsByStaff(ctx *tinyctx.Context, tenantID, staffID string, from, to int64) ([]Reservation, error) {
 	return s.repo.ListReservationsByStaff(tenantID, staffID, from, to)
 }
 
-func (s *schedulingService) ListReservationsByClient(ctx context.Context, tenantID, clientID string) ([]Reservation, error) {
+func (s *schedulingService) ListReservationsByClient(ctx *tinyctx.Context, tenantID, clientID string) ([]Reservation, error) {
 	return s.repo.ListReservationsByClient(tenantID, clientID)
 }
 
-func (s *schedulingService) ChangeReservationStatus(ctx context.Context, cmd ChangeStatusCmd) error {
+func (s *schedulingService) ChangeReservationStatus(ctx *tinyctx.Context, cmd ChangeStatusCmd) error {
 	current, err := s.repo.GetReservation(cmd.ID)
 	if err != nil {
 		return err
@@ -552,7 +538,7 @@ func (s *schedulingService) ChangeReservationStatus(ctx context.Context, cmd Cha
 	return nil
 }
 
-func (s *schedulingService) ExpirePendingReservations(ctx context.Context, tenantID string, before int64) (int, error) {
+func (s *schedulingService) ExpirePendingReservations(ctx *tinyctx.Context, tenantID string, before int64) (int, error) {
 	proxy := &Reservation{}
 	qb := s.db.Query(proxy).
 		Where(Reservation_.TenantID).Eq(tenantID).

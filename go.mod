@@ -10,7 +10,7 @@ require (
 	github.com/tinywasm/mcp v0.1.1
 	github.com/tinywasm/orm v0.7.1
 	github.com/tinywasm/sqlite v0.2.0
-	github.com/tinywasm/time v0.3.10
+	github.com/tinywasm/time v0.4.0
 	github.com/tinywasm/unixid v0.2.23
 )
 
@@ -28,3 +28,5 @@ require (
 	modernc.org/memory v1.11.0 // indirect
 	modernc.org/sqlite v1.46.1 // indirect
 )
+
+replace github.com/tinywasm/time => ./internal/tinytime

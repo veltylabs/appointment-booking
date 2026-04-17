@@ -2,9 +2,9 @@ package tests
 
 import (
 	ab "github.com/veltylabs/appointment-booking"
-	"context"
+	tinyctx "github.com/tinywasm/context"
 	"testing"
-	"time"
+	tinytime "github.com/tinywasm/time"
 
 	"github.com/tinywasm/orm"
 )
@@ -14,7 +14,7 @@ import (
 // RunServicePureTests tests generic logic of the service (Availability, FSM changes, CreateReservation)
 // without depending on standard lib SQLite, so it can run on WASM.
 func RunServicePureTests(t *testing.T, s ab.SchedulingService, repo *ab.Repository, db *orm.DB) {
-	ctx := context.Background()
+	ctx := tinyctx.Background()
 
 	t.Run("CreateReservation_Success", func(t *testing.T) {
 		// Insert active ab.EmployeeServiceConfig
@@ -56,11 +56,11 @@ func RunServicePureTests(t *testing.T, s ab.SchedulingService, repo *ab.Reposito
 			t.Fatalf("UpsertWeeklyCalendar: %v", err)
 		}
 
-		targetDay := time.Date(2025, 1, 6, 0, 0, 0, 0, time.UTC) // Jan 6, 2025 is Monday
-		slotStartUTC := targetDay.Unix() + 540*60 // 09:00 UTC
+		targetDay := tinytime.Date(2025, 1, 6, 0, 0, 0, 0) // Jan 6, 2025 is Monday
+		slotStartUTC := targetDay + 540*60 // 09:00 UTC
 
 		// Test ListAvailability
-		slots, err := s.ListAvailability(ctx, "t1", "s1", cfgID, targetDay.Unix(), targetDay.Unix())
+		slots, err := s.ListAvailability(ctx, "t1", "s1", cfgID, targetDay, targetDay)
 		if err != nil {
 			t.Fatalf("ListAvailability: %v", err)
 		}
@@ -155,8 +155,8 @@ func RunServicePureTests(t *testing.T, s ab.SchedulingService, repo *ab.Reposito
 			IsActive:  true,
 		})
 
-		targetDay := time.Date(2025, 1, 7, 0, 0, 0, 0, time.UTC) // Jan 7, 2025 is Tuesday
-		slotStartUTC := targetDay.Unix() + 540*60 // 09:00 UTC
+		targetDay := tinytime.Date(2025, 1, 7, 0, 0, 0, 0) // Jan 7, 2025 is Tuesday
+		slotStartUTC := targetDay + 540*60 // 09:00 UTC
 
 		cmd := ab.CreateReservationCmd{
 			TenantID:                "t2",
@@ -206,8 +206,8 @@ func RunServicePureTests(t *testing.T, s ab.SchedulingService, repo *ab.Reposito
 			IsActive:  true,
 		})
 
-		targetDay := time.Date(2025, 1, 8, 0, 0, 0, 0, time.UTC) // Jan 8, 2025 is Wednesday
-		slotStartUTC := targetDay.Unix() + 540*60 // 09:00 UTC
+		targetDay := tinytime.Date(2025, 1, 8, 0, 0, 0, 0) // Jan 8, 2025 is Wednesday
+		slotStartUTC := targetDay + 540*60 // 09:00 UTC
 
 		cmd := ab.CreateReservationCmd{
 			TenantID:                "t3",

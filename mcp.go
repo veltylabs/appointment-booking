@@ -79,7 +79,7 @@ func (p *ReservationProvider) createReservation(ctx *context.Context, req mcp.Re
 		Notes:                   args.Notes,
 		RescheduledFromID:       args.RescheduledFromID,
 	}
-	res, err := p.svc.CreateReservation(ToStd(ctx), cmd)
+	res, err := p.svc.CreateReservation(ctx, cmd)
 	if err != nil {
 		if err == ErrSlotTaken {
 			return errResult("The selected time slot is already taken"), nil
@@ -98,7 +98,7 @@ func (p *ReservationProvider) getReservation(ctx *context.Context, req mcp.Reque
 	if err := req.Bind(&args); err != nil {
 		return errResult("invalid arguments"), nil
 	}
-	res, err := p.svc.GetReservation(ToStd(ctx), args.TenantID, args.ID)
+	res, err := p.svc.GetReservation(ctx, args.TenantID, args.ID)
 	if err != nil {
 		return errResult(err.Error()), nil
 	}
@@ -114,7 +114,7 @@ func (p *ReservationProvider) listReservationsByStaff(ctx *context.Context, req 
 	if err := req.Bind(&args); err != nil {
 		return errResult("invalid arguments"), nil
 	}
-	res, err := p.svc.ListReservationsByStaff(ToStd(ctx), args.TenantID, args.StaffID, args.From, args.To)
+	res, err := p.svc.ListReservationsByStaff(ctx, args.TenantID, args.StaffID, args.From, args.To)
 	if err != nil {
 		return errResult(err.Error()), nil
 	}
@@ -135,7 +135,7 @@ func (p *ReservationProvider) listReservationsByClient(ctx *context.Context, req
 	if err := req.Bind(&args); err != nil {
 		return errResult("invalid arguments"), nil
 	}
-	res, err := p.svc.ListReservationsByClient(ToStd(ctx), args.TenantID, args.ClientID)
+	res, err := p.svc.ListReservationsByClient(ctx, args.TenantID, args.ClientID)
 	if err != nil {
 		return errResult(err.Error()), nil
 	}
@@ -164,7 +164,7 @@ func (p *ReservationProvider) changeReservationStatus(ctx *context.Context, req 
 		PaymentID: args.PaymentID,
 		Revision:  int(args.Revision),
 	}
-	if err := p.svc.ChangeReservationStatus(ToStd(ctx), cmd); err != nil {
+	if err := p.svc.ChangeReservationStatus(ctx, cmd); err != nil {
 		return errResult(err.Error()), nil
 	}
 	return mcp.Text("Status updated successfully"), nil
@@ -175,7 +175,7 @@ func (p *ReservationProvider) expirePendingReservations(ctx *context.Context, re
 	if err := req.Bind(&args); err != nil {
 		return errResult("invalid arguments"), nil
 	}
-	count, err := p.svc.ExpirePendingReservations(ToStd(ctx), args.TenantID, args.Before)
+	count, err := p.svc.ExpirePendingReservations(ctx, args.TenantID, args.Before)
 	if err != nil {
 		return errResult(err.Error()), nil
 	}
@@ -240,7 +240,7 @@ func (p *CalendarProvider) upsertCalendarConfig(ctx *context.Context, req mcp.Re
 		Timezone: args.Timezone,
 		IsActive: args.IsActive,
 	}
-	if err := p.svc.UpsertCalendarConfig(ToStd(ctx), cfg); err != nil {
+	if err := p.svc.UpsertCalendarConfig(ctx, cfg); err != nil {
 		return errResult(err.Error()), nil
 	}
 	return mcp.Text("Calendar config upserted successfully"), nil
@@ -261,7 +261,7 @@ func (p *CalendarProvider) upsertWeeklyCalendar(ctx *context.Context, req mcp.Re
 		BreakFinish: args.BreakFinish,
 		IsActive:    args.IsActive,
 	}
-	if err := p.svc.UpsertWeeklyCalendar(ToStd(ctx), cal); err != nil {
+	if err := p.svc.UpsertWeeklyCalendar(ctx, cal); err != nil {
 		if err == ErrCalendarConfigNotFound {
 			return errResult("Set the staff timezone first using upsert_calendar_config"), nil
 		}
@@ -284,7 +284,7 @@ func (p *CalendarProvider) addCalendarException(ctx *context.Context, req mcp.Re
 		EndTime:       args.EndTime,
 		Notes:         args.Notes,
 	}
-	if err := p.svc.AddException(ToStd(ctx), exc); err != nil {
+	if err := p.svc.AddException(ctx, exc); err != nil {
 		return errResult(err.Error()), nil
 	}
 	return mcp.Text("Calendar exception added successfully"), nil
@@ -295,7 +295,7 @@ func (p *CalendarProvider) removeCalendarException(ctx *context.Context, req mcp
 	if err := req.Bind(&args); err != nil {
 		return errResult("invalid arguments"), nil
 	}
-	if err := p.svc.RemoveException(ToStd(ctx), args.TenantID, args.ExceptionID); err != nil {
+	if err := p.svc.RemoveException(ctx, args.TenantID, args.ExceptionID); err != nil {
 		return errResult(err.Error()), nil
 	}
 	return mcp.Text("Calendar exception removed successfully"), nil
@@ -306,7 +306,7 @@ func (p *CalendarProvider) listAvailability(ctx *context.Context, req mcp.Reques
 	if err := req.Bind(&args); err != nil {
 		return errResult("invalid arguments"), nil
 	}
-	slots, err := p.svc.ListAvailability(ToStd(ctx), args.TenantID, args.StaffID, args.ConfigID, args.From, args.To)
+	slots, err := p.svc.ListAvailability(ctx, args.TenantID, args.StaffID, args.ConfigID, args.From, args.To)
 	if err != nil {
 		if err == ErrCalendarConfigNotFound {
 			return errResult("Set the staff timezone first using upsert_calendar_config"), nil

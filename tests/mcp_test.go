@@ -3,10 +3,9 @@
 package tests
 
 import (
-	"context"
+	tinyctx "github.com/tinywasm/context"
 	"testing"
 
-	tinyctx "github.com/tinywasm/context"
 	"github.com/tinywasm/mcp"
 	ab "github.com/veltylabs/appointment-booking"
 )
@@ -16,14 +15,14 @@ type mockService struct {
 	errToReturn error
 }
 
-func (m *mockService) UpsertWeeklyCalendar(ctx context.Context, cal ab.WorkCalendarWeekly) error {
+func (m *mockService) UpsertWeeklyCalendar(ctx *tinyctx.Context, cal ab.WorkCalendarWeekly) error {
 	if cal.StaffID == "" {
 		return ab.ErrCalendarConfigNotFound
 	}
 	return m.errToReturn
 }
 
-func (m *mockService) CreateReservation(ctx context.Context, cmd ab.CreateReservationCmd) (ab.Reservation, error) {
+func (m *mockService) CreateReservation(ctx *tinyctx.Context, cmd ab.CreateReservationCmd) (ab.Reservation, error) {
 	if cmd.SlotStartUTC == 1712000000 {
 		return ab.Reservation{}, ab.ErrSlotTaken
 	}
