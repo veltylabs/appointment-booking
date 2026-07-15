@@ -1,7 +1,7 @@
 package tests
 
 import (
-	ab "github.com/veltylabs/appointment-booking"
+	ab "github.com/veltylabs/appointment_booking"
 	tinyctx "github.com/tinywasm/context"
 	"testing"
 	tinytime "github.com/tinywasm/time"

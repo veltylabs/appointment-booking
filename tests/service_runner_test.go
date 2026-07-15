@@ -7,7 +7,7 @@ import (
 	tinytime "github.com/tinywasm/time"
 
 	"github.com/tinywasm/orm"
-	ab "github.com/veltylabs/appointment-booking"
+	ab "github.com/veltylabs/appointment_booking"
 )
 
 func RunServiceValidationTests(t *testing.T, s ab.SchedulingService, repo *ab.Repository, db *orm.DB, deps ab.Deps) {

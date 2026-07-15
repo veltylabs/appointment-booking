@@ -1,4 +1,4 @@
-module github.com/veltylabs/appointment-booking
+module github.com/veltylabs/appointment_booking
 
 go 1.25.2
 

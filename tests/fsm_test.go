@@ -1,7 +1,7 @@
 package tests
 
 import (
-	ab "github.com/veltylabs/appointment-booking"
+	ab "github.com/veltylabs/appointment_booking"
 	"testing"
 )
 

@@ -2,7 +2,7 @@ package tests
 
 import (
 	tinyctx "github.com/tinywasm/context"
-	ab "github.com/veltylabs/appointment-booking"
+	ab "github.com/veltylabs/appointment_booking"
 )
 
 type MockStaffReader struct {

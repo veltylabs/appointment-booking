@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/tinywasm/mcp"
-	ab "github.com/veltylabs/appointment-booking"
+	ab "github.com/veltylabs/appointment_booking"
 )
 
 type mockService struct {
