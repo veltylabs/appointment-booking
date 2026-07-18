@@ -1,7 +1,9 @@
 package tests
 
 import (
-	tinyctx "github.com/tinywasm/context"
+	"github.com/tinywasm/events"
+	"github.com/tinywasm/fmt"
+	"github.com/tinywasm/model"
 	ab "github.com/veltylabs/appointment_booking"
 )
 
@@ -34,19 +36,29 @@ func (m *MockDirectoryReader) ClientExists(tenantID, clientID string) (bool, err
 
 type MockEventPublisher struct {
 	PublishedEvents []string
-	Err             error
 }
 
-func (m *MockEventPublisher) Publish(ctx *tinyctx.Context, event string, payload any) error {
-	m.PublishedEvents = append(m.PublishedEvents, event)
-	return m.Err
+func (m *MockEventPublisher) Publish(e events.Event) {
+	m.PublishedEvents = append(m.PublishedEvents, e.Topic)
 }
+
+var _ events.Publisher = (*MockEventPublisher)(nil)
+
+type fakeIDs struct{ n int }
+
+func (f *fakeIDs) NewID() string {
+	f.n++
+	return "test-id-" + fmt.Convert(f.n).String()
+}
+
+var _ model.IDGenerator = (*fakeIDs)(nil)
 
 func SetupDependencies() ab.Deps {
 	return ab.Deps{
 		Staff:     &MockStaffReader{Exists: true},
 		Catalog:   &MockCatalogReader{Exists: true},
 		Directory: &MockDirectoryReader{Exists: true},
+		IDs:       &fakeIDs{},
 		Publisher: &MockEventPublisher{},
 	}
 }

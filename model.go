@@ -1,172 +1,222 @@
 package appointmentbooking
 
-// EmployeeServiceConfig maps per-staff-per-service durations and overrides.
-type EmployeeServiceConfig struct {
-	ID              string `db:"pk"`
-	TenantID        string
-	StaffID         string
-	ServiceID       string
-	DurationMin     int64
-	BufferMin       int64
-	PriceOverride   float64
-	PaymentRequired bool
-	IsActive        bool
+import (
+	"github.com/tinywasm/form/input"
+	"github.com/tinywasm/model"
+)
+
+var EmployeeServiceConfigModel = model.Definition{
+	Name: "employee_service_config",
+	Fields: model.Fields{
+		{Name: "id", Type: model.Text(), DB: &model.FieldDB{PK: true}},
+		{Name: "tenant_id", Type: model.Text(), NotNull: true},
+		{Name: "staff_id", Type: model.Text(), NotNull: true},
+		{Name: "service_id", Type: model.Text(), NotNull: true},
+		{Name: "duration_min", Type: model.Int()},
+		{Name: "buffer_min", Type: model.Int()},
+		{Name: "price_override", Type: model.Float()},
+		{Name: "payment_required", Type: model.Bool()},
+		{Name: "is_active", Type: model.Bool()},
+	},
 }
 
-// WorkCalendarConfig is the single source of truth for timezone per staff.
-type WorkCalendarConfig struct {
-	ID       string `db:"pk"`
-	TenantID string
-	StaffID  string
-	Timezone string // IANA e.g. "America/Santiago"
-	IsActive bool
+var WorkCalendarConfigModel = model.Definition{
+	Name: "work_calendar_config",
+	Fields: model.Fields{
+		{Name: "id", Type: model.Text(), DB: &model.FieldDB{PK: true}},
+		{Name: "tenant_id", Type: model.Text(), NotNull: true},
+		{Name: "staff_id", Type: model.Text(), NotNull: true},
+		{Name: "timezone", Type: model.Text(), NotNull: true},
+		{Name: "is_active", Type: model.Bool()},
+	},
 }
 
-// WorkCalendarWeekly defines recurring weekly hours for a staff member.
-type WorkCalendarWeekly struct {
-	ID          string `db:"pk"`
-	TenantID    string
-	StaffID     string
-	DayOfWeek   int64 // 0=Sunday … 6=Saturday
-	WorkStart   int64 // minutes from midnight, local time
-	WorkFinish  int64
-	BreakStart  int64
-	BreakFinish int64
-	IsActive    bool
+var WorkCalendarWeeklyModel = model.Definition{
+	Name: "work_calendar_weekly",
+	Fields: model.Fields{
+		{Name: "id", Type: model.Text(), DB: &model.FieldDB{PK: true}},
+		{Name: "tenant_id", Type: model.Text(), NotNull: true},
+		{Name: "staff_id", Type: model.Text(), NotNull: true},
+		{Name: "day_of_week", Type: model.Int()},
+		{Name: "work_start", Type: model.Int()},
+		{Name: "work_finish", Type: model.Int()},
+		{Name: "break_start", Type: model.Int()},
+		{Name: "break_finish", Type: model.Int()},
+		{Name: "is_active", Type: model.Bool()},
+	},
 }
 
-// WorkCalendarException overrides working hours for a specific date.
-type WorkCalendarException struct {
-	ID            string `db:"pk"`
-	TenantID      string
-	StaffID       string
-	SpecificDate  int64  // unix timestamp (UTC midnight)
-	ExceptionType string // "day_off" | "custom_hours"
-	StartTime     int64
-	EndTime       int64
-	Notes         string
+var WorkCalendarExceptionModel = model.Definition{
+	Name: "work_calendar_exception",
+	Fields: model.Fields{
+		{Name: "id", Type: model.Text(), DB: &model.FieldDB{PK: true}},
+		{Name: "tenant_id", Type: model.Text(), NotNull: true},
+		{Name: "staff_id", Type: model.Text(), NotNull: true},
+		{Name: "specific_date", Type: model.Int()},
+		{Name: "exception_type", Type: model.Text()},
+		{Name: "start_time", Type: model.Int()},
+		{Name: "end_time", Type: model.Int()},
+		{Name: "notes", Type: model.Text()},
+	},
 }
 
-// Reservation is the core booking record.
-type Reservation struct {
-	ID                      string `db:"pk"`
-	TenantID                string
-	ClientID                string
-	CreatorUserID           string
-	EmployeeServiceConfigID string
-	StaffIDSnapshot         string
-	ServiceIDSnapshot       string
-	DurationMinSnapshot     int64
-	PriceSnapshot           float64
-	CurrencySnapshot        string
-	ReservationDate         int64  // unix timestamp of the LOCAL date (UTC midnight)
-	ReservationTime         int64  // unix timestamp (UTC)
-	LocalStringDate         string // "2026-03-04"
-	LocalStringTime         string // "14:30"
-	Status                  string // FSM state — use constants from fsm.go (StatusPending, StatusConfirmed, etc.)
-	RescheduledFromID       string
-	PaymentID               string
-	Notes                   string
-	UpdatedAt               int64
-	UpdatedBy               string
-	Revision                int64
+// NOTA: "staff_idsnapshot" / "service_idsnapshot" preservan EXACTAMENTE el nombre de columna
+// actual (irregularidad histórica, sin guión bajo) — NO renombrar la columna. Ver §1.1.
+var ReservationModel = model.Definition{
+	Name: "reservation",
+	Fields: model.Fields{
+		{Name: "id", Type: model.Text(), DB: &model.FieldDB{PK: true}},
+		{Name: "tenant_id", Type: model.Text(), NotNull: true},
+		{Name: "client_id", Type: model.Text(), NotNull: true},
+		{Name: "creator_user_id", Type: model.Text()},
+		{Name: "employee_service_config_id", Type: model.Text(), NotNull: true},
+		{Name: "staff_idsnapshot", Type: model.Text()},
+		{Name: "service_idsnapshot", Type: model.Text()},
+		{Name: "duration_min_snapshot", Type: model.Int()},
+		{Name: "price_snapshot", Type: model.Float()},
+		{Name: "currency_snapshot", Type: model.Text()},
+		{Name: "reservation_date", Type: model.Int()},
+		{Name: "reservation_time", Type: model.Int()},
+		{Name: "local_string_date", Type: model.Text()},
+		{Name: "local_string_time", Type: model.Text()},
+		// status: valores válidos = las constantes FSM exportadas de fsm.go/service.go — los
+		// literales viven SOLO en esas constantes (regla anti magic-string, ver item_catalog).
+		{Name: "status", Type: model.Text(), NotNull: true},
+		{Name: "rescheduled_from_id", Type: model.Text()},
+		{Name: "payment_id", Type: model.Text()},
+		{Name: "notes", Type: model.Text()},
+		{Name: "updated_at", Type: model.Int()},
+		{Name: "updated_by", Type: model.Text()},
+		{Name: "revision", Type: model.Int()},
+	},
 }
 
-// ormc:formonly
-type TimeSlot struct {
-	StartUTC int64
-	EndUTC   int64
+// Las 12 Definitions de abajo son transport-only. Política de widgets POR ROL (no "lo que el
+// model_orm.go viejo tuviera" — ese archivo ponía widget en todo campo transport, un defecto que
+// esta migración corrige): input.X() SOLO en campos que un usuario edita en un form; kinds base
+// (model.X()) en campos machine-supplied (tenant_id) y en modelos de SALIDA (TimeSlot es
+// resultado de list_availability — nunca se renderiza como form editable). No dejes caer un
+// widget de un campo genuinamente editable: form.New() saldría vacío en silencio.
+
+var TimeSlotModel = model.Definition{
+	Name: "time_slot",
+	Fields: model.Fields{
+		{Name: "start_utc", Type: model.Int()},
+		{Name: "end_utc", Type: model.Int()},
+	},
 }
 
-// ormc:formonly
-type createReservationArgs struct {
-	TenantID                string
-	ClientID                string
-	CreatorUserID           string
-	EmployeeServiceConfigID string
-	SlotStartUTC            int64
-	Notes                   string
-	RescheduledFromID       string
+var CreateReservationArgsModel = model.Definition{
+	Name: "create_reservation_args",
+	Fields: model.Fields{
+		{Name: "tenant_id", Type: model.Text()}, // machine-supplied — never a form input
+		{Name: "client_id", Type: input.Text()},
+		{Name: "creator_user_id", Type: input.Text()},
+		{Name: "employee_service_config_id", Type: input.Text()},
+		{Name: "slot_start_utc", Type: input.Number()},
+		{Name: "notes", Type: input.Text()},
+		{Name: "rescheduled_from_id", Type: input.Text()},
+	},
 }
 
-// ormc:formonly
-type getReservationArgs struct {
-	TenantID string
-	ID       string
+var GetReservationArgsModel = model.Definition{
+	Name: "get_reservation_args",
+	Fields: model.Fields{
+		{Name: "tenant_id", Type: model.Text()}, // machine-supplied — never a form input
+		{Name: "id", Type: input.Text()},
+	},
 }
 
-// ormc:formonly
-type listReservationsByStaffArgs struct {
-	TenantID string
-	StaffID  string
-	From     int64
-	To       int64
+var ListReservationsByStaffArgsModel = model.Definition{
+	Name: "list_reservations_by_staff_args",
+	Fields: model.Fields{
+		{Name: "tenant_id", Type: model.Text()}, // machine-supplied — never a form input
+		{Name: "staff_id", Type: input.Text()},
+		{Name: "from", Type: input.Number()},
+		{Name: "to", Type: input.Number()},
+	},
 }
 
-// ormc:formonly
-type listReservationsByClientArgs struct {
-	TenantID string
-	ClientID string
+var ListReservationsByClientArgsModel = model.Definition{
+	Name: "list_reservations_by_client_args",
+	Fields: model.Fields{
+		{Name: "tenant_id", Type: model.Text()}, // machine-supplied — never a form input
+		{Name: "client_id", Type: input.Text()},
+	},
 }
 
-// ormc:formonly
-type changeReservationStatusArgs struct {
-	TenantID  string
-	ID        string
-	Event     string
-	ActorID   string
-	PaymentID string
-	Revision  int64
+var ChangeReservationStatusArgsModel = model.Definition{
+	Name: "change_reservation_status_args",
+	Fields: model.Fields{
+		{Name: "tenant_id", Type: model.Text()}, // machine-supplied — never a form input
+		{Name: "id", Type: input.Text()},
+		{Name: "event", Type: input.Text()},
+		{Name: "actor_id", Type: input.Text()},
+		{Name: "payment_id", Type: input.Text()},
+		{Name: "revision", Type: input.Number()},
+	},
 }
 
-// ormc:formonly
-type expirePendingReservationsArgs struct {
-	TenantID string
-	Before   int64
+var ExpirePendingReservationsArgsModel = model.Definition{
+	Name: "expire_pending_reservations_args",
+	Fields: model.Fields{
+		{Name: "tenant_id", Type: model.Text()}, // machine-supplied — never a form input
+		{Name: "before", Type: input.Number()},
+	},
 }
 
-// ormc:formonly
-type upsertCalendarConfigArgs struct {
-	TenantID string
-	StaffID  string
-	Timezone string
-	IsActive bool
+var UpsertCalendarConfigArgsModel = model.Definition{
+	Name: "upsert_calendar_config_args",
+	Fields: model.Fields{
+		{Name: "tenant_id", Type: model.Text()}, // machine-supplied — never a form input
+		{Name: "staff_id", Type: input.Text()},
+		{Name: "timezone", Type: input.Text()},
+		{Name: "is_active", Type: input.Checkbox()},
+	},
 }
 
-// ormc:formonly
-type upsertWeeklyCalendarArgs struct {
-	TenantID    string
-	StaffID     string
-	DayOfWeek   int64
-	WorkStart   int64
-	WorkFinish  int64
-	BreakStart  int64
-	BreakFinish int64
-	IsActive    bool
+var UpsertWeeklyCalendarArgsModel = model.Definition{
+	Name: "upsert_weekly_calendar_args",
+	Fields: model.Fields{
+		{Name: "tenant_id", Type: model.Text()}, // machine-supplied — never a form input
+		{Name: "staff_id", Type: input.Text()},
+		{Name: "day_of_week", Type: input.Number()},
+		{Name: "work_start", Type: input.Number()},
+		{Name: "work_finish", Type: input.Number()},
+		{Name: "break_start", Type: input.Number()},
+		{Name: "break_finish", Type: input.Number()},
+		{Name: "is_active", Type: input.Checkbox()},
+	},
 }
 
-// ormc:formonly
-type addCalendarExceptionArgs struct {
-	TenantID      string
-	StaffID       string
-	SpecificDate  int64
-	ExceptionType string
-	StartTime     int64
-	EndTime       int64
-	Notes         string
+var AddCalendarExceptionArgsModel = model.Definition{
+	Name: "add_calendar_exception_args",
+	Fields: model.Fields{
+		{Name: "tenant_id", Type: model.Text()}, // machine-supplied — never a form input
+		{Name: "staff_id", Type: input.Text()},
+		{Name: "specific_date", Type: input.Number()},
+		{Name: "exception_type", Type: input.Text()},
+		{Name: "start_time", Type: input.Number()},
+		{Name: "end_time", Type: input.Number()},
+		{Name: "notes", Type: input.Text()},
+	},
 }
 
-// ormc:formonly
-type removeCalendarExceptionArgs struct {
-	TenantID    string
-	ExceptionID string
+var RemoveCalendarExceptionArgsModel = model.Definition{
+	Name: "remove_calendar_exception_args",
+	Fields: model.Fields{
+		{Name: "tenant_id", Type: model.Text()}, // machine-supplied — never a form input
+		{Name: "exception_id", Type: input.Text()},
+	},
 }
 
-// ormc:formonly
-type listAvailabilityArgs struct {
-	TenantID string
-	StaffID  string
-	ConfigID string
-	From     int64
-	To       int64
+var ListAvailabilityArgsModel = model.Definition{
+	Name: "list_availability_args",
+	Fields: model.Fields{
+		{Name: "tenant_id", Type: model.Text()}, // machine-supplied — never a form input
+		{Name: "staff_id", Type: input.Text()},
+		{Name: "config_id", Type: input.Text()},
+		{Name: "from", Type: input.Number()},
+		{Name: "to", Type: input.Number()},
+	},
 }

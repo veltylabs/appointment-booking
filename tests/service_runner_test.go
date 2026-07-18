@@ -1,36 +1,44 @@
 package tests
 
 import (
-	tinyctx "github.com/tinywasm/context"
-	"strings"
 	"testing"
-	tinytime "github.com/tinywasm/time"
 
 	"github.com/tinywasm/orm"
+	tinytime "github.com/tinywasm/time"
 	ab "github.com/veltylabs/appointment_booking"
 )
 
-func RunServiceValidationTests(t *testing.T, s ab.SchedulingService, repo *ab.Repository, db *orm.DB, deps ab.Deps) {
-	ctx := tinyctx.Background()
+func contains(s, substr string) bool {
+	if len(substr) == 0 {
+		return true
+	}
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
+}
 
+func RunServiceValidationTests(t *testing.T, s ab.SchedulingService, repo *ab.Repository, db *orm.DB, deps ab.Deps) {
 	t.Run("UC-01_CreateReservation_InactiveConfig", func(t *testing.T) {
 		cfg := ab.EmployeeServiceConfig{
-			TenantID:    "t_uc01",
-			StaffID:     "s_uc01",
-			ServiceID:   "srv_uc01",
+			TenantId:    "t_uc01",
+			StaffId:     "s_uc01",
+			ServiceId:   "srv_uc01",
 			DurationMin: 30,
 			IsActive:    false, // inactive
 		}
 		repo.InsertEmployeeServiceConfig(cfg)
 		cfgs, _ := repo.ListEmployeeServiceConfigByStaff("t_uc01", "s_uc01")
-		cfgID := cfgs[0].ID
+		cfgID := cfgs[0].Id
 
-		_, err := s.CreateReservation(ctx, ab.CreateReservationCmd{
-			TenantID:                "t_uc01",
-			ClientID:                "c1",
-			CreatorUserID:           "u1",
-			EmployeeServiceConfigID: cfgID,
-			SlotStartUTC:            1000,
+		_, err := s.CreateReservation(ab.CreateReservationCmd{
+			TenantId:                "t_uc01",
+			ClientId:                "c1",
+			CreatorUserId:           "u1",
+			EmployeeServiceConfigId: cfgID,
+			SlotStartUtc:            1000,
 		})
 		if err != ab.ErrNotFound {
 			t.Fatalf("expected ab.ErrNotFound, got: %v", err)
@@ -39,112 +47,112 @@ func RunServiceValidationTests(t *testing.T, s ab.SchedulingService, repo *ab.Re
 
 	t.Run("UC-02_CreateReservation_StaffNotFound", func(t *testing.T) {
 		cfg := ab.EmployeeServiceConfig{
-			TenantID:    "t_uc02",
-			StaffID:     "s_uc02",
-			ServiceID:   "srv_uc02",
+			TenantId:    "t_uc02",
+			StaffId:     "s_uc02",
+			ServiceId:   "srv_uc02",
 			DurationMin: 30,
 			IsActive:    true,
 		}
 		repo.InsertEmployeeServiceConfig(cfg)
 		cfgs, _ := repo.ListEmployeeServiceConfigByStaff("t_uc02", "s_uc02")
-		cfgID := cfgs[0].ID
+		cfgID := cfgs[0].Id
 
 		mockStaff := deps.Staff.(*MockStaffReader)
 		mockStaff.Exists = false
 		defer func() { mockStaff.Exists = true }()
 
-		_, err := s.CreateReservation(ctx, ab.CreateReservationCmd{
-			TenantID:                "t_uc02",
-			ClientID:                "c1",
-			CreatorUserID:           "u1",
-			EmployeeServiceConfigID: cfgID,
-			SlotStartUTC:            1000,
+		_, err := s.CreateReservation(ab.CreateReservationCmd{
+			TenantId:                "t_uc02",
+			ClientId:                "c1",
+			CreatorUserId:           "u1",
+			EmployeeServiceConfigId: cfgID,
+			SlotStartUtc:            1000,
 		})
-		if err == nil || !strings.Contains(err.Error(), "staff not found") {
+		if err == nil || !contains(err.Error(), "staff not found") {
 			t.Fatalf("expected 'staff not found' error, got: %v", err)
 		}
 	})
 
 	t.Run("UC-03_CreateReservation_ServiceNotFound", func(t *testing.T) {
 		cfg := ab.EmployeeServiceConfig{
-			TenantID:    "t_uc03",
-			StaffID:     "s_uc03",
-			ServiceID:   "srv_uc03",
+			TenantId:    "t_uc03",
+			StaffId:     "s_uc03",
+			ServiceId:   "srv_uc03",
 			DurationMin: 30,
 			IsActive:    true,
 		}
 		repo.InsertEmployeeServiceConfig(cfg)
 		cfgs, _ := repo.ListEmployeeServiceConfigByStaff("t_uc03", "s_uc03")
-		cfgID := cfgs[0].ID
+		cfgID := cfgs[0].Id
 
 		mockCatalog := deps.Catalog.(*MockCatalogReader)
 		mockCatalog.Exists = false
 		defer func() { mockCatalog.Exists = true }()
 
-		_, err := s.CreateReservation(ctx, ab.CreateReservationCmd{
-			TenantID:                "t_uc03",
-			ClientID:                "c1",
-			CreatorUserID:           "u1",
-			EmployeeServiceConfigID: cfgID,
-			SlotStartUTC:            1000,
+		_, err := s.CreateReservation(ab.CreateReservationCmd{
+			TenantId:                "t_uc03",
+			ClientId:                "c1",
+			CreatorUserId:           "u1",
+			EmployeeServiceConfigId: cfgID,
+			SlotStartUtc:            1000,
 		})
-		if err == nil || !strings.Contains(err.Error(), "service not found") {
+		if err == nil || !contains(err.Error(), "service not found") {
 			t.Fatalf("expected 'service not found' error, got: %v", err)
 		}
 	})
 
 	t.Run("UC-04_CreateReservation_ClientNotFound", func(t *testing.T) {
 		cfg := ab.EmployeeServiceConfig{
-			TenantID:    "t_uc04",
-			StaffID:     "s_uc04",
-			ServiceID:   "srv_uc04",
+			TenantId:    "t_uc04",
+			StaffId:     "s_uc04",
+			ServiceId:   "srv_uc04",
 			DurationMin: 30,
 			IsActive:    true,
 		}
 		repo.InsertEmployeeServiceConfig(cfg)
 		cfgs, _ := repo.ListEmployeeServiceConfigByStaff("t_uc04", "s_uc04")
-		cfgID := cfgs[0].ID
+		cfgID := cfgs[0].Id
 
 		mockDirectory := deps.Directory.(*MockDirectoryReader)
 		mockDirectory.Exists = false
 		defer func() { mockDirectory.Exists = true }()
 
-		_, err := s.CreateReservation(ctx, ab.CreateReservationCmd{
-			TenantID:                "t_uc04",
-			ClientID:                "c1",
-			CreatorUserID:           "u1",
-			EmployeeServiceConfigID: cfgID,
-			SlotStartUTC:            1000,
+		_, err := s.CreateReservation(ab.CreateReservationCmd{
+			TenantId:                "t_uc04",
+			ClientId:                "c1",
+			CreatorUserId:           "u1",
+			EmployeeServiceConfigId: cfgID,
+			SlotStartUtc:            1000,
 		})
-		if err == nil || !strings.Contains(err.Error(), "client not found") {
+		if err == nil || !contains(err.Error(), "client not found") {
 			t.Fatalf("expected 'client not found' error, got: %v", err)
 		}
 	})
 
 	setupValidConfig := func(tenant, staff string, slotStart int64) string {
 		cfg := ab.EmployeeServiceConfig{
-			TenantID:    tenant,
-			StaffID:     staff,
-			ServiceID:   "srv1",
+			TenantId:    tenant,
+			StaffId:     staff,
+			ServiceId:   "srv1",
 			DurationMin: 30,
 			IsActive:    true,
 		}
 		repo.InsertEmployeeServiceConfig(cfg)
 		cfgs, _ := repo.ListEmployeeServiceConfigByStaff(tenant, staff)
-		cfgID := cfgs[0].ID
+		cfgID := cfgs[0].Id
 
-		s.UpsertCalendarConfig(ctx, ab.WorkCalendarConfig{
-			TenantID: tenant,
-			StaffID:  staff,
+		s.UpsertCalendarConfig(ab.WorkCalendarConfig{
+			TenantId: tenant,
+			StaffId:  staff,
 			Timezone: "UTC",
 			IsActive: true,
 		})
 
 		dow := tinytime.Weekday(slotStart)
 
-		s.UpsertWeeklyCalendar(ctx, ab.WorkCalendarWeekly{
-			TenantID:   tenant,
-			StaffID:    staff,
+		s.UpsertWeeklyCalendar(ab.WorkCalendarWeekly{
+			TenantId:   tenant,
+			StaffId:    staff,
 			DayOfWeek:  int64(dow),
 			WorkStart:  0,
 			WorkFinish: 1440, // all day
@@ -154,15 +162,15 @@ func RunServiceValidationTests(t *testing.T, s ab.SchedulingService, repo *ab.Re
 	}
 
 	t.Run("UC-05_ChangeReservationStatus_Cancel_FromPending", func(t *testing.T) {
-		slot := tinytime.Date(2025, 2, 1, 10, 0, 0, 0)
+		slot := Date(2025, 2, 1, 10, 0, 0, 0)
 		cfgID := setupValidConfig("t_uc05", "s_uc05", slot)
 
-		res, err := s.CreateReservation(ctx, ab.CreateReservationCmd{
-			TenantID:                "t_uc05",
-			ClientID:                "c1",
-			CreatorUserID:           "u1",
-			EmployeeServiceConfigID: cfgID,
-			SlotStartUTC:            slot,
+		res, err := s.CreateReservation(ab.CreateReservationCmd{
+			TenantId:                "t_uc05",
+			ClientId:                "c1",
+			CreatorUserId:           "u1",
+			EmployeeServiceConfigId: cfgID,
+			SlotStartUtc:            slot,
 		})
 		if err != nil {
 			t.Fatalf("CreateReservation: %v", err)
@@ -171,18 +179,18 @@ func RunServiceValidationTests(t *testing.T, s ab.SchedulingService, repo *ab.Re
 		mockPub := deps.Publisher.(*MockEventPublisher)
 		mockPub.PublishedEvents = nil // reset
 
-		err = s.ChangeReservationStatus(ctx, ab.ChangeStatusCmd{
-			TenantID: "t_uc05",
-			ID:       res.ID,
+		err = s.ChangeReservationStatus(ab.ChangeStatusCmd{
+			TenantId: "t_uc05",
+			Id:       res.Id,
 			Event:    ab.EventCancel,
-			ActorID:  "u1",
+			ActorId:  "u1",
 			Revision: 0,
 		})
 		if err != nil {
 			t.Fatalf("ChangeReservationStatus: %v", err)
 		}
 
-		got, _ := s.GetReservation(ctx, "t_uc05", res.ID)
+		got, _ := s.GetReservation("t_uc05", res.Id)
 		if got.Status != ab.StatusCancelled {
 			t.Fatalf("expected CANCELLED, got %s", got.Status)
 		}
@@ -200,40 +208,40 @@ func RunServiceValidationTests(t *testing.T, s ab.SchedulingService, repo *ab.Re
 	})
 
 	t.Run("UC-06_ChangeReservationStatus_Complete_FromConfirmed", func(t *testing.T) {
-		slot := tinytime.Date(2025, 2, 2, 10, 0, 0, 0)
+		slot := Date(2025, 2, 2, 10, 0, 0, 0)
 		cfgID := setupValidConfig("t_uc06", "s_uc06", slot)
 
-		res, _ := s.CreateReservation(ctx, ab.CreateReservationCmd{
-			TenantID:                "t_uc06",
-			ClientID:                "c1",
-			CreatorUserID:           "u1",
-			EmployeeServiceConfigID: cfgID,
-			SlotStartUTC:            slot,
+		res, _ := s.CreateReservation(ab.CreateReservationCmd{
+			TenantId:                "t_uc06",
+			ClientId:                "c1",
+			CreatorUserId:           "u1",
+			EmployeeServiceConfigId: cfgID,
+			SlotStartUtc:            slot,
 		})
 
-		s.ChangeReservationStatus(ctx, ab.ChangeStatusCmd{
-			TenantID: "t_uc06",
-			ID:       res.ID,
+		s.ChangeReservationStatus(ab.ChangeStatusCmd{
+			TenantId: "t_uc06",
+			Id:       res.Id,
 			Event:    ab.EventConfirm,
-			ActorID:  "u1",
+			ActorId:  "u1",
 			Revision: 0,
 		})
 
 		mockPub := deps.Publisher.(*MockEventPublisher)
 		mockPub.PublishedEvents = nil
 
-		err := s.ChangeReservationStatus(ctx, ab.ChangeStatusCmd{
-			TenantID: "t_uc06",
-			ID:       res.ID,
+		err := s.ChangeReservationStatus(ab.ChangeStatusCmd{
+			TenantId: "t_uc06",
+			Id:       res.Id,
 			Event:    ab.EventComplete,
-			ActorID:  "u1",
+			ActorId:  "u1",
 			Revision: 1,
 		})
 		if err != nil {
 			t.Fatalf("ChangeReservationStatus Complete: %v", err)
 		}
 
-		got, _ := s.GetReservation(ctx, "t_uc06", res.ID)
+		got, _ := s.GetReservation("t_uc06", res.Id)
 		if got.Status != ab.StatusCompleted {
 			t.Fatalf("expected COMPLETED, got %s", got.Status)
 		}
@@ -251,28 +259,28 @@ func RunServiceValidationTests(t *testing.T, s ab.SchedulingService, repo *ab.Re
 	})
 
 	t.Run("UC-07_CreateReservation_Reschedule", func(t *testing.T) {
-		slot1 := tinytime.Date(2025, 2, 3, 10, 0, 0, 0)
-		slot2 := tinytime.Date(2025, 2, 3, 11, 0, 0, 0)
+		slot1 := Date(2025, 2, 3, 10, 0, 0, 0)
+		slot2 := Date(2025, 2, 3, 11, 0, 0, 0)
 		cfgID := setupValidConfig("t_uc07", "s_uc07", slot1)
 
-		res1, _ := s.CreateReservation(ctx, ab.CreateReservationCmd{
-			TenantID:                "t_uc07",
-			ClientID:                "c1",
-			CreatorUserID:           "u1",
-			EmployeeServiceConfigID: cfgID,
-			SlotStartUTC:            slot1,
+		res1, _ := s.CreateReservation(ab.CreateReservationCmd{
+			TenantId:                "t_uc07",
+			ClientId:                "c1",
+			CreatorUserId:           "u1",
+			EmployeeServiceConfigId: cfgID,
+			SlotStartUtc:            slot1,
 		})
 
 		mockPub := deps.Publisher.(*MockEventPublisher)
 		mockPub.PublishedEvents = nil
 
-		res2, err := s.CreateReservation(ctx, ab.CreateReservationCmd{
-			TenantID:                "t_uc07",
-			ClientID:                "c1",
-			CreatorUserID:           "u1",
-			EmployeeServiceConfigID: cfgID,
-			SlotStartUTC:            slot2,
-			RescheduledFromID:       res1.ID,
+		res2, err := s.CreateReservation(ab.CreateReservationCmd{
+			TenantId:                "t_uc07",
+			ClientId:                "c1",
+			CreatorUserId:           "u1",
+			EmployeeServiceConfigId: cfgID,
+			SlotStartUtc:            slot2,
+			RescheduledFromId:       res1.Id,
 		})
 		if err != nil {
 			t.Fatalf("CreateReservation reschedule: %v", err)
@@ -282,7 +290,7 @@ func RunServiceValidationTests(t *testing.T, s ab.SchedulingService, repo *ab.Re
 			t.Fatalf("expected new res PENDING, got %s", res2.Status)
 		}
 
-		gotOrig, _ := s.GetReservation(ctx, "t_uc07", res1.ID)
+		gotOrig, _ := s.GetReservation("t_uc07", res1.Id)
 		if gotOrig.Status != ab.StatusRescheduled {
 			t.Fatalf("expected orig res RESCHEDULED, got %s", gotOrig.Status)
 		}
@@ -302,40 +310,40 @@ func RunServiceValidationTests(t *testing.T, s ab.SchedulingService, repo *ab.Re
 	})
 
 	t.Run("UC-13_GetReservation_CrossTenantIsolation", func(t *testing.T) {
-		slot := tinytime.Date(2025, 2, 4, 10, 0, 0, 0)
+		slot := Date(2025, 2, 4, 10, 0, 0, 0)
 		cfgID := setupValidConfig("T1", "s_uc13", slot)
 
-		res, _ := s.CreateReservation(ctx, ab.CreateReservationCmd{
-			TenantID:                "T1",
-			ClientID:                "c1",
-			CreatorUserID:           "u1",
-			EmployeeServiceConfigID: cfgID,
-			SlotStartUTC:            slot,
+		res, _ := s.CreateReservation(ab.CreateReservationCmd{
+			TenantId:                "T1",
+			ClientId:                "c1",
+			CreatorUserId:           "u1",
+			EmployeeServiceConfigId: cfgID,
+			SlotStartUtc:            slot,
 		})
 
-		_, err := s.GetReservation(ctx, "T2", res.ID)
+		_, err := s.GetReservation("T2", res.Id)
 		if err != ab.ErrNotFound {
 			t.Fatalf("expected ErrNotFound for cross tenant Get, got %v", err)
 		}
 	})
 
 	t.Run("UC-14_ChangeReservationStatus_CrossTenantIsolation", func(t *testing.T) {
-		slot := tinytime.Date(2025, 2, 5, 10, 0, 0, 0)
+		slot := Date(2025, 2, 5, 10, 0, 0, 0)
 		cfgID := setupValidConfig("T1", "s_uc14", slot)
 
-		res, _ := s.CreateReservation(ctx, ab.CreateReservationCmd{
-			TenantID:                "T1",
-			ClientID:                "c1",
-			CreatorUserID:           "u1",
-			EmployeeServiceConfigID: cfgID,
-			SlotStartUTC:            slot,
+		res, _ := s.CreateReservation(ab.CreateReservationCmd{
+			TenantId:                "T1",
+			ClientId:                "c1",
+			CreatorUserId:           "u1",
+			EmployeeServiceConfigId: cfgID,
+			SlotStartUtc:            slot,
 		})
 
-		err := s.ChangeReservationStatus(ctx, ab.ChangeStatusCmd{
-			TenantID: "T2",
-			ID:       res.ID,
+		err := s.ChangeReservationStatus(ab.ChangeStatusCmd{
+			TenantId: "T2",
+			Id:       res.Id,
 			Event:    ab.EventCancel,
-			ActorID:  "u1",
+			ActorId:  "u1",
 			Revision: 0,
 		})
 		if err != ab.ErrNotFound {
@@ -344,9 +352,9 @@ func RunServiceValidationTests(t *testing.T, s ab.SchedulingService, repo *ab.Re
 	})
 
 	t.Run("UC-12_UpsertWeeklyCalendar_CalendarConfigNotFound", func(t *testing.T) {
-		err := s.UpsertWeeklyCalendar(ctx, ab.WorkCalendarWeekly{
-			TenantID:  "t_uc12",
-			StaffID:   "non_existent",
+		err := s.UpsertWeeklyCalendar(ab.WorkCalendarWeekly{
+			TenantId:  "t_uc12",
+			StaffId:   "non_existent",
 			DayOfWeek: 1,
 			WorkStart: 540,
 		})
@@ -356,85 +364,85 @@ func RunServiceValidationTests(t *testing.T, s ab.SchedulingService, repo *ab.Re
 	})
 
 	t.Run("UC-18_ChangeReservationStatus_ConfirmWithPaymentID", func(t *testing.T) {
-		slot := tinytime.Date(2025, 2, 6, 10, 0, 0, 0)
+		slot := Date(2025, 2, 6, 10, 0, 0, 0)
 		cfgID := setupValidConfig("t_uc18", "s_uc18", slot)
 
-		res, _ := s.CreateReservation(ctx, ab.CreateReservationCmd{
-			TenantID:                "t_uc18",
-			ClientID:                "c1",
-			CreatorUserID:           "u1",
-			EmployeeServiceConfigID: cfgID,
-			SlotStartUTC:            slot,
+		res, _ := s.CreateReservation(ab.CreateReservationCmd{
+			TenantId:                "t_uc18",
+			ClientId:                "c1",
+			CreatorUserId:           "u1",
+			EmployeeServiceConfigId: cfgID,
+			SlotStartUtc:            slot,
 		})
 
-		err := s.ChangeReservationStatus(ctx, ab.ChangeStatusCmd{
-			TenantID:  "t_uc18",
-			ID:        res.ID,
+		err := s.ChangeReservationStatus(ab.ChangeStatusCmd{
+			TenantId:  "t_uc18",
+			Id:        res.Id,
 			Event:     ab.EventConfirm,
-			ActorID:   "u1",
-			PaymentID: "pay_123",
+			ActorId:   "u1",
+			PaymentId: "pay_123",
 			Revision:  0,
 		})
 		if err != nil {
 			t.Fatalf("ChangeReservationStatus: %v", err)
 		}
 
-		got, _ := s.GetReservation(ctx, "t_uc18", res.ID)
-		if got.PaymentID != "pay_123" {
-			t.Fatalf("expected PaymentID 'pay_123', got '%s'", got.PaymentID)
+		got, _ := s.GetReservation("t_uc18", res.Id)
+		if got.PaymentId != "pay_123" {
+			t.Fatalf("expected PaymentID 'pay_123', got '%s'", got.PaymentId)
 		}
 	})
 
 	t.Run("UC-19_ListReservationsByStaff_ViaService", func(t *testing.T) {
-		slot1 := tinytime.Date(2025, 2, 7, 10, 0, 0, 0)
-		slot2 := tinytime.Date(2025, 2, 7, 11, 0, 0, 0)
+		slot1 := Date(2025, 2, 7, 10, 0, 0, 0)
+		slot2 := Date(2025, 2, 7, 11, 0, 0, 0)
 		cfgID := setupValidConfig("t_uc19", "s_uc19", slot1)
 
-		s.CreateReservation(ctx, ab.CreateReservationCmd{
-			TenantID:                "t_uc19",
-			ClientID:                "c1",
-			CreatorUserID:           "u1",
-			EmployeeServiceConfigID: cfgID,
-			SlotStartUTC:            slot1,
+		s.CreateReservation(ab.CreateReservationCmd{
+			TenantId:                "t_uc19",
+			ClientId:                "c1",
+			CreatorUserId:           "u1",
+			EmployeeServiceConfigId: cfgID,
+			SlotStartUtc:            slot1,
 		})
-		 for i := 0; i < 1000000; i++ {} // busy wait alternative to avoid nanosecond collision
-		s.CreateReservation(ctx, ab.CreateReservationCmd{
-			TenantID:                "t_uc19",
-			ClientID:                "c2",
-			CreatorUserID:           "u2",
-			EmployeeServiceConfigID: cfgID,
-			SlotStartUTC:            slot2,
+		for i := 0; i < 1000000; i++ {} // busy wait alternative to avoid nanosecond collision
+		s.CreateReservation(ab.CreateReservationCmd{
+			TenantId:                "t_uc19",
+			ClientId:                "c2",
+			CreatorUserId:           "u2",
+			EmployeeServiceConfigId: cfgID,
+			SlotStartUtc:            slot2,
 		})
 
-		from := tinytime.Date(2025, 2, 7, 0, 0, 0, 0)
-		to := tinytime.Date(2025, 2, 8, 0, 0, 0, 0)
+		from := Date(2025, 2, 7, 0, 0, 0, 0)
+		to := Date(2025, 2, 8, 0, 0, 0, 0)
 
-		res, err := s.ListReservationsByStaff(ctx, "t_uc19", "s_uc19", from, to)
+		res, err := s.ListReservationsByStaff("t_uc19", "s_uc19", from, to)
 		if err != nil {
 			t.Fatalf("ListReservationsByStaff: %v", err)
 		}
 		if len(res) != 2 {
 			t.Fatalf("expected 2 reservations, got %d", len(res))
 		}
-		if res[0].StaffIDSnapshot != "s_uc19" || res[1].StaffIDSnapshot != "s_uc19" {
+		if res[0].StaffIdsnapshot != "s_uc19" || res[1].StaffIdsnapshot != "s_uc19" {
 			t.Fatalf("expected staffID s_uc19")
 		}
 	})
 
 	t.Run("UC-20_ExpirePendingReservations_NothingToExpire", func(t *testing.T) {
-		slot := tinytime.Date(2025, 2, 8, 10, 0, 0, 0)
+		slot := Date(2025, 2, 8, 10, 0, 0, 0)
 		cfgID := setupValidConfig("t_uc20", "s_uc20", slot)
 
-		s.CreateReservation(ctx, ab.CreateReservationCmd{
-			TenantID:                "t_uc20",
-			ClientID:                "c1",
-			CreatorUserID:           "u1",
-			EmployeeServiceConfigID: cfgID,
-			SlotStartUTC:            slot,
+		s.CreateReservation(ab.CreateReservationCmd{
+			TenantId:                "t_uc20",
+			ClientId:                "c1",
+			CreatorUserId:           "u1",
+			EmployeeServiceConfigId: cfgID,
+			SlotStartUtc:            slot,
 		})
 
 		// try to expire before the reservation
-		count, err := s.ExpirePendingReservations(ctx, "t_uc20", slot-3600)
+		count, err := s.ExpirePendingReservations("t_uc20", slot-3600)
 		if err != nil {
 			t.Fatalf("ExpirePendingReservations: %v", err)
 		}

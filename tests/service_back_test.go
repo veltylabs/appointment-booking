@@ -1,35 +1,28 @@
-//go:build !wasm
-
 package tests
 
 import (
-	ab "github.com/veltylabs/appointment_booking"
-	tinyctx "github.com/tinywasm/context"
 	"testing"
-	tinytime "github.com/tinywasm/time"
 
-	"github.com/tinywasm/sqlite"
+	"github.com/tinywasm/orm"
+	"github.com/tinywasm/storage/mem"
+	ab "github.com/veltylabs/appointment_booking"
 )
 
 func TestService_Back(t *testing.T) {
-	db, err := sqlite.Open(":memory:")
-	if err != nil {
-		t.Fatalf("sqlite.Open: %v", err)
-	}
-	defer db.Close()
+	db := orm.New(mem.New())
 
-	repo, err := ab.NewRepository(db)
+	deps := SetupDependencies()
+	repo, err := ab.NewRepository(db, deps.IDs)
 	if err != nil {
 		t.Fatalf("ab.NewRepository: %v", err)
 	}
 
-	deps := SetupDependencies()
 	svc, err := ab.New(db, deps)
 	if err != nil {
 		t.Fatalf("ab.New: %v", err)
 	}
 
-	// Run pure tests first on sqlite
+	// Run pure tests first on mem
 	t.Run("PureTests", func(t *testing.T) {
 		RunServicePureTests(t, svc, repo, db)
 		RunServiceValidationTests(t, svc, repo, db, deps)
@@ -38,69 +31,67 @@ func TestService_Back(t *testing.T) {
 
 	// Run integration/concurrency specific tests
 	t.Run("Integration_Concurrency", func(t *testing.T) {
-		ctx := tinyctx.Background()
-
 		// Setup config
 		cfg := ab.EmployeeServiceConfig{
-			TenantID:      "t99",
-			StaffID:       "s99",
-			ServiceID:     "srv99",
+			TenantId:      "t99",
+			StaffId:       "s99",
+			ServiceId:     "srv99",
 			DurationMin:   30,
 			IsActive:      true,
 			PriceOverride: 100,
 		}
 		repo.InsertEmployeeServiceConfig(cfg)
 		cfgs, _ := repo.ListEmployeeServiceConfigByStaff("t99", "s99")
-		cfgID := cfgs[0].ID
+		cfgID := cfgs[0].Id
 
 		s := svc
-		s.UpsertCalendarConfig(ctx, ab.WorkCalendarConfig{
-			TenantID: "t99",
-			StaffID:  "s99",
+		s.UpsertCalendarConfig(ab.WorkCalendarConfig{
+			TenantId: "t99",
+			StaffId:  "s99",
 			Timezone: "UTC",
 			IsActive: true,
 		})
-		s.UpsertWeeklyCalendar(ctx, ab.WorkCalendarWeekly{
-			TenantID:  "t99",
-			StaffID:   "s99",
-			DayOfWeek: 4, // Thursday
-			WorkStart: 540,
+		s.UpsertWeeklyCalendar(ab.WorkCalendarWeekly{
+			TenantId:   "t99",
+			StaffId:    "s99",
+			DayOfWeek:  4, // Thursday
+			WorkStart:  540,
 			WorkFinish: 600,
-			IsActive:  true,
+			IsActive:   true,
 		})
 
-		targetDay := tinytime.Date(2025, 1, 9, 0, 0, 0, 0) // Jan 9, 2025 is Thursday
+		targetDay := Date(2025, 1, 9, 0, 0, 0, 0) // Jan 9, 2025 is Thursday
 		slotStartUTC := targetDay + 540*60
 
-		res, err := s.CreateReservation(ctx, ab.CreateReservationCmd{
-			TenantID:                "t99",
-			ClientID:                "c1",
-			CreatorUserID:           "u1",
-			EmployeeServiceConfigID: cfgID,
-			SlotStartUTC:            slotStartUTC,
+		res, err := s.CreateReservation(ab.CreateReservationCmd{
+			TenantId:                "t99",
+			ClientId:                "c1",
+			CreatorUserId:           "u1",
+			EmployeeServiceConfigId: cfgID,
+			SlotStartUtc:            slotStartUTC,
 		})
 		if err != nil {
 			t.Fatalf("CreateReservation: %v", err)
 		}
 
 		// Test Conflict / Revision System
-		err1 := s.ChangeReservationStatus(ctx, ab.ChangeStatusCmd{
-			TenantID:  "t99",
-			ID:        res.ID,
+		err1 := s.ChangeReservationStatus(ab.ChangeStatusCmd{
+			TenantId:  "t99",
+			Id:        res.Id,
 			Event:     ab.EventConfirm,
-			ActorID:   "u1",
-			PaymentID: "pay1",
+			ActorId:   "u1",
+			PaymentId: "pay1",
 			Revision:  0, // Correct revision
 		})
 		if err1 != nil {
 			t.Fatalf("First change should succeed, got: %v", err1)
 		}
 
-		err2 := s.ChangeReservationStatus(ctx, ab.ChangeStatusCmd{
-			TenantID: "t99",
-			ID:       res.ID,
+		err2 := s.ChangeReservationStatus(ab.ChangeStatusCmd{
+			TenantId: "t99",
+			Id:       res.Id,
 			Event:    ab.EventCancel,
-			ActorID:  "u1",
+			ActorId:  "u1",
 			Revision: 0, // Wrong revision, should be 1
 		})
 		if err2 != ab.ErrConflict {
