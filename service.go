@@ -5,8 +5,8 @@ import (
 
 	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/orm"
-	"github.com/tinywasm/unixid"
 	tinytime "github.com/tinywasm/time"
+	"github.com/tinywasm/unixid"
 )
 
 var (
@@ -429,7 +429,7 @@ func (s *schedulingService) CreateReservation(ctx *tinyctx.Context, cmd CreateRe
 			return err
 		}
 		// ensure a unique ID by using the generated nanosecond one properly
-		newReservation.ID = idHandler.GetNewID()
+		newReservation.ID = idHandler.NewID()
 
 		// Do an in-tx insert instead of repo.InsertReservation which uses db.Create
 		err = tx.Create(&newReservation)

@@ -45,7 +45,7 @@ func (r *Repository) InsertReservation(res *Reservation) error {
 		return err
 	}
 	if res.ID == "" {
-		res.ID = idHandler.GetNewID()
+		res.ID = idHandler.NewID()
 	}
 	res.Revision = 0
 	return r.db.Create(res)
@@ -146,7 +146,7 @@ func (r *Repository) InsertException(exc WorkCalendarException) error {
 	if err != nil {
 		return err
 	}
-	exc.ID = idHandler.GetNewID()
+	exc.ID = idHandler.NewID()
 	return r.db.Create(&exc)
 }
 
@@ -181,7 +181,7 @@ func (r *Repository) InsertEmployeeServiceConfig(cfg EmployeeServiceConfig) erro
 	if err != nil {
 		return err
 	}
-	cfg.ID = idHandler.GetNewID()
+	cfg.ID = idHandler.NewID()
 	return r.db.Create(&cfg)
 }
 
@@ -238,7 +238,7 @@ func (r *Repository) UpsertCalendarConfig(cfg WorkCalendarConfig) error {
 		if err != nil {
 			return err
 		}
-		cfg.ID = idHandler.GetNewID()
+		cfg.ID = idHandler.NewID()
 		return r.db.Create(&cfg)
 	}
 	// Exists — update in place (preserve original ID)
@@ -280,7 +280,7 @@ func (r *Repository) UpsertWeeklyCalendar(cal WorkCalendarWeekly) error {
 		if err != nil {
 			return err
 		}
-		cal.ID = idHandler.GetNewID()
+		cal.ID = idHandler.NewID()
 		return r.db.Create(&cal)
 	}
 	cal.ID = got.ID
