@@ -7,20 +7,20 @@ import (
 	"github.com/tinywasm/orm"
 )
 
-// Package-level sentinel errors
+// Errores sentinela a nivel de paquete
 var (
 	ErrNotFound = fmt.Err("record", "not", "found")
 	ErrConflict = fmt.Err("optimistic", "concurrency", "conflict")
 )
 
-// Repository provides CRUD operations for all appointment-booking tables.
+// Repository provee operaciones CRUD para todas las tablas de appointment-booking.
 type Repository struct {
 	db  *orm.DB
 	ids model.IDGenerator
 }
 
-// NewRepository creates a new Repository and migrates its 5 owned tables when the backend
-// supports DDL (a no-op against storage/mem, used by this module's own tests).
+// NewRepository crea un nuevo Repository y migra sus 5 tablas propias cuando el backend
+// soporta DDL (no-op contra storage/mem, usado por las pruebas propias de este módulo).
 func NewRepository(db *orm.DB, ids model.IDGenerator) (*Repository, error) {
 	tables := []model.Model{
 		&EmployeeServiceConfig{},
@@ -219,7 +219,7 @@ func (r *Repository) UpdateEmployeeServiceConfig(cfg EmployeeServiceConfig) erro
 // ----------------------------------------------------------------------------
 
 func (r *Repository) UpsertCalendarConfig(cfg WorkCalendarConfig) error {
-	// Try to find existing record for this (tenantId, staffId)
+	// Intenta encontrar un registro existente para este (tenantId, staffId)
 	existing := &WorkCalendarConfig{}
 	qb := r.db.Query(existing).
 		Where(WorkCalendarConfig_.TenantId).Eq(cfg.TenantId).
@@ -229,11 +229,11 @@ func (r *Repository) UpsertCalendarConfig(cfg WorkCalendarConfig) error {
 		return err
 	}
 	if err == orm.ErrNotFound {
-		// Does not exist — create
+		// No existe — crear
 		cfg.Id = r.ids.NewID()
 		return r.db.Create(&cfg)
 	}
-	// Exists — update in place (preserve original ID)
+	// Existe — actualizar en el lugar (preservando el ID original)
 	cfg.Id = got.Id
 	return r.db.Update(&cfg, orm.Eq(WorkCalendarConfig_.Id, cfg.Id), orm.Eq(WorkCalendarConfig_.TenantId, cfg.TenantId))
 }

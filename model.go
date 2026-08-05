@@ -61,7 +61,8 @@ var WorkCalendarExceptionModel = model.Definition{
 }
 
 // NOTA: "staff_idsnapshot" / "service_idsnapshot" preservan EXACTAMENTE el nombre de columna
-// actual (irregularidad histórica, sin guión bajo) — NO renombrar la columna. Ver §1.1.
+// actual (irregularidad histórica, sin guión bajo) — NO renombrar la columna, la tabla ya existe
+// con ese nombre en producción.
 var ReservationModel = model.Definition{
 	Name: "reservation",
 	Fields: model.Fields{

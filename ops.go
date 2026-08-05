@@ -41,10 +41,10 @@ func (m *Module) MountOps(reg router.OpRegistry) {
 
 var _ router.OpModule = (*Module)(nil)
 
-// writeError maps known sentinel errors to an HTTP-ish status code and writes err.Error() as the
-// body, preserving (loosely) the human-readable messages the old mcp.Result{Content: msg} gave —
-// router.Context has no error-with-message envelope of its own, so this is the module's own,
-// minimal convention. See docs/PLAN.md §4 "Fuera de alcance" for why this isn't richer.
+// writeError mapea los errores sentinela conocidos a un código de estado tipo HTTP y escribe
+// err.Error() como cuerpo, preservando (de forma laxa) los mensajes legibles que daba el viejo
+// mcp.Result{Content: msg} — router.Context no tiene un envoltorio propio de error-con-mensaje,
+// así que esta es la convención mínima propia del módulo. Deliberadamente no es más rica que esto.
 //
 // Convención de mapeo (la misma para todos los módulos del ecosistema — nunca colapsar todo a
 // 500, eso es el "runtime mystery" que CONSTRUCTION_HARNESS prohíbe):
