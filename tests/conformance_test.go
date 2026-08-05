@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/tinywasm/model"
+	"github.com/tinywasm/view"
 	"github.com/tinywasm/view/conformance"
 	ab "github.com/veltylabs/appointment_booking"
 )
@@ -76,12 +77,13 @@ func TestViewConformance(t *testing.T) {
 		t.Fatalf("expected Selected() to return res-2, got %s", pres.Selected())
 	}
 
-	// 4. Save and delete capabilities must be disabled by design
-	if pres.CanSave() {
-		t.Fatalf("expected CanSave to be false")
+	// 4. Save and delete capabilities must be disabled by design — Saver/Deleter are capabilities
+	// the renderer discovers by type assertion (view.Presenter doc comment), not CanSave()/CanDelete().
+	if _, ok := pres.(view.Saver); ok {
+		t.Fatalf("expected no Saver capability")
 	}
 
-	if pres.CanDelete() {
-		t.Fatalf("expected CanDelete to be false")
+	if _, ok := pres.(view.Deleter); ok {
+		t.Fatalf("expected no Deleter capability")
 	}
 }

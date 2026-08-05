@@ -5,6 +5,7 @@ import (
 	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/model"
 	"github.com/tinywasm/orm"
+	"github.com/tinywasm/svg"
 	tinytime "github.com/tinywasm/time"
 )
 
@@ -13,7 +14,11 @@ var (
 	ErrSlotTaken              = fmt.Err("slot", "taken")
 )
 
-// Domain events emitted by this module.
+// iconAppointmentBooking es la referencia al ícono de marca del módulo — solo el nombre llega al
+// binario wasm; la geometría se declara en svg.go (registrado por IconSvg en svg.go).
+const iconAppointmentBooking = svg.Icon("appointment-booking-module")
+
+// Eventos de dominio emitidos por este módulo.
 const (
 	EventReservationCreated     = "appointment.reservation.created"
 	EventReservationConfirmed   = "appointment.reservation.confirmed"
@@ -24,32 +29,32 @@ const (
 	EventReservationRescheduled = "appointment.reservation.rescheduled"
 )
 
-// StaffReader verifies a staff member exists and belongs to the tenant.
+// StaffReader verifica que un miembro del staff existe y pertenece al tenant.
 type StaffReader interface {
 	StaffExists(tenantId, staffId string) (bool, error)
 }
 
-// CatalogReader verifies a service exists and belongs to the tenant.
+// CatalogReader verifica que un servicio existe y pertenece al tenant.
 type CatalogReader interface {
 	ServiceExists(tenantId, serviceId string) (bool, error)
 }
 
-// DirectoryReader verifies a client exists and belongs to the tenant.
+// DirectoryReader verifica que un cliente existe y pertenece al tenant.
 type DirectoryReader interface {
 	ClientExists(tenantId, clientId string) (bool, error)
 }
 
 type SchedulingService interface {
-	// Calendar management
+	// Gestión de calendario
 	UpsertCalendarConfig(cfg WorkCalendarConfig) error
 	UpsertWeeklyCalendar(cal WorkCalendarWeekly) error
 	AddException(exc WorkCalendarException) error
 	RemoveException(tenantId, exceptionId string) error
 
-	// Availability
+	// Disponibilidad
 	ListAvailability(tenantId, staffId, configId string, from, to int64) ([]TimeSlot, error)
 
-	// Reservations
+	// Reservas
 	CreateReservation(cmd CreateReservationCmd) (Reservation, error)
 	GetReservation(tenantId, id string) (Reservation, error)
 	ListReservationsByStaff(tenantId, staffId string, from, to int64) ([]Reservation, error)
@@ -122,7 +127,7 @@ func (m *Module) UpsertCalendarConfig(cfg WorkCalendarConfig) error {
 }
 
 func (m *Module) UpsertWeeklyCalendar(cal WorkCalendarWeekly) error {
-	// Must check if CalendarConfig exists first
+	// Primero hay que verificar si CalendarConfig existe
 	_, err := m.repo.GetCalendarConfig(cal.TenantId, cal.StaffId)
 	if err != nil {
 		if err == ErrNotFound {
@@ -142,13 +147,24 @@ func (m *Module) RemoveException(tenantId, exceptionId string) error {
 	return m.repo.DeleteException(tenantId, exceptionId)
 }
 
-// LocalIntToUnixUTC interprets localInt as minutes from midnight on the given date (UTC midnight) in the given tz.
+// LocalIntToUnixUTC interpreta localInt como minutos desde la medianoche en la fecha dada (medianoche UTC) en la zona horaria (tz) especificada.
 func LocalIntToUnixUTC(date int64, localInt int, tz string) int64 {
 	return tinytime.LocalMinutesToUnixUTC(date, localInt, tz)
 }
 
+// weeklyForDay busca el horario semanal activo para un día de la semana dado — scan lineal sobre
+// como mucho 7 filas, ver la nota en ListAvailability.
+func weeklyForDay(weeklies []WorkCalendarWeekly, dow int) (WorkCalendarWeekly, bool) {
+	for _, w := range weeklies {
+		if int(w.DayOfWeek) == dow {
+			return w, true
+		}
+	}
+	return WorkCalendarWeekly{}, false
+}
+
 func (m *Module) ListAvailability(tenantId, staffId, configId string, from, to int64) ([]TimeSlot, error) {
-	// 1. Load WorkCalendarConfig
+	// 1. Cargar WorkCalendarConfig
 	cfg, err := m.repo.GetCalendarConfig(tenantId, staffId)
 	if err != nil {
 		if err == ErrNotFound {
@@ -160,29 +176,31 @@ func (m *Module) ListAvailability(tenantId, staffId, configId string, from, to i
 		return []TimeSlot{}, nil
 	}
 
-	// 2. Load WorkCalendarWeekly
+	// 2. Cargar WorkCalendarWeekly
 	weeklies, err := m.repo.ListWeeklyCalendar(tenantId, staffId)
 	if err != nil {
 		return nil, err
 	}
-	activeWeeklies := make(map[int]WorkCalendarWeekly)
+	// Slice, no map — la regla "cero map" de AGENTS.md no tiene excepciones; a lo sumo 7 filas
+	// (una por día de la semana), un scan lineal no cuesta nada medible.
+	activeWeeklies := make([]WorkCalendarWeekly, 0, len(weeklies))
 	for _, w := range weeklies {
 		if w.IsActive {
-			activeWeeklies[int(w.DayOfWeek)] = w
+			activeWeeklies = append(activeWeeklies, w)
 		}
 	}
 
-	// 3. Load WorkCalendarException
+	// 3. Cargar WorkCalendarException
 	exceptions, err := m.repo.ListExceptions(tenantId, staffId, from, to)
 	if err != nil {
 		return nil, err
 	}
-	exceptionsByDate := make(map[int64][]WorkCalendarException)
-	for _, e := range exceptions {
-		exceptionsByDate[e.SpecificDate] = append(exceptionsByDate[e.SpecificDate], e)
-	}
+	// Sin agrupar en un map — el filtro por fecha se hace inline con un scan lineal sobre
+	// `exceptions` dentro del loop de días (ver más abajo). Las excepciones son un conjunto
+	// disperso por diseño (feriados, horarios especiales); nunca lo suficientemente grande
+	// para que un scan lineal importe.
 
-	// 4. Load existing Reservations
+	// 4. Cargar Reservations existentes
 	reservations, err := m.repo.ListReservationsByStaff(tenantId, staffId, from, to)
 	if err != nil {
 		return nil, err
@@ -194,7 +212,7 @@ func (m *Module) ListAvailability(tenantId, staffId, configId string, from, to i
 		}
 	}
 
-	// 5. Load EmployeeServiceConfig
+	// 5. Cargar EmployeeServiceConfig
 	empSvcCfg, err := m.repo.GetEmployeeServiceConfig(configId)
 	if err != nil {
 		return nil, err
@@ -208,14 +226,14 @@ func (m *Module) ListAvailability(tenantId, staffId, configId string, from, to i
 
 	slots := []TimeSlot{}
 
-	// 6. For each day D in [from, to] (assuming from and to are midnight UTC timestamps)
-	// We increment by 1 day (86400 seconds)
+	// 6. Para cada día D en [from, to] (asumiendo que from y to son timestamps de medianoche UTC)
+	// Incrementamos de a 1 día (86400 segundos)
 	for d := from; d <= to; d += 86400 {
 		dow := tinytime.Weekday(d)
 
-		weekly, hasWeekly := activeWeeklies[dow]
+		weekly, hasWeekly := weeklyForDay(activeWeeklies, dow)
 		if !hasWeekly {
-			continue // skip day
+			continue // saltar el día
 		}
 
 		workStartUTC := LocalIntToUnixUTC(d, int(weekly.WorkStart), cfg.Timezone)
@@ -225,11 +243,16 @@ func (m *Module) ListAvailability(tenantId, staffId, configId string, from, to i
 
 		hasBreak := weekly.BreakStart > 0 || weekly.BreakFinish > 0
 
-		// Apply exceptions
-		dayExceptions := exceptionsByDate[d]
+		// Aplicar excepciones
+		var dayExceptions []WorkCalendarException
+		for _, e := range exceptions {
+			if e.SpecificDate == d {
+				dayExceptions = append(dayExceptions, e)
+			}
+		}
 		isHoliday := false
 
-		// Priority: HOLIDAY > SPECIAL_HOURS > BLOCKED
+		// Prioridad: HOLIDAY > SPECIAL_HOURS > BLOCKED
 		var specialHours *WorkCalendarException
 		var blockedExcs []WorkCalendarException
 
@@ -256,7 +279,7 @@ func (m *Module) ListAvailability(tenantId, staffId, configId string, from, to i
 			hasBreak = false // break interval removed
 		}
 
-		// Generate slots
+		// Generar slots
 		curr := workStartUTC
 		for {
 			end := curr + int64(durationMin*60)
@@ -266,22 +289,22 @@ func (m *Module) ListAvailability(tenantId, staffId, configId string, from, to i
 				break
 			}
 
-			// Check break
+			// Verificar break
 			if hasBreak {
 				if !(end <= breakStartUTC || curr >= breakFinishUTC) {
-					// skip to the end of the break to allow slots after break
+					// saltar al final del break para permitir slots después del break
 					curr = breakFinishUTC
 					continue
 				}
 			}
 
-			// Check blocked exceptions
+			// Verificar excepciones bloqueadas
 			isBlocked := false
 			var blockedEnd int64
 			for _, b := range blockedExcs {
 				bStart := LocalIntToUnixUTC(d, int(b.StartTime), cfg.Timezone)
 				bEnd := LocalIntToUnixUTC(d, int(b.EndTime), cfg.Timezone)
-				// Overlap check
+				// Verificación de solapamiento
 				if curr < bEnd && endWithBuffer > bStart {
 					isBlocked = true
 					blockedEnd = bEnd
@@ -293,13 +316,13 @@ func (m *Module) ListAvailability(tenantId, staffId, configId string, from, to i
 				continue
 			}
 
-			// Check existing reservations
+			// Verificar reservas existentes
 			hasOverlap := false
 			var resEnd int64
 			for _, r := range activeReservations {
 				rStart := r.ReservationTime
 				rEnd := rStart + int64(r.DurationMinSnapshot*60)
-				// Overlap check
+				// Verificación de solapamiento
 				if curr < rEnd && endWithBuffer > rStart {
 					hasOverlap = true
 					resEnd = rEnd
@@ -320,7 +343,7 @@ func (m *Module) ListAvailability(tenantId, staffId, configId string, from, to i
 }
 
 func (m *Module) CreateReservation(cmd CreateReservationCmd) (Reservation, error) {
-	// 1. Load EmployeeServiceConfig
+	// 1. Cargar EmployeeServiceConfig
 	empSvcCfg, err := m.repo.GetEmployeeServiceConfig(cmd.EmployeeServiceConfigId)
 	if err != nil {
 		return Reservation{}, err
@@ -329,7 +352,7 @@ func (m *Module) CreateReservation(cmd CreateReservationCmd) (Reservation, error
 		return Reservation{}, ErrNotFound
 	}
 
-	// 2. Validate client
+	// 2. Validar cliente
 	clientExists, err := m.directory.ClientExists(cmd.TenantId, cmd.ClientId)
 	if err != nil {
 		return Reservation{}, err
@@ -338,7 +361,7 @@ func (m *Module) CreateReservation(cmd CreateReservationCmd) (Reservation, error
 		return Reservation{}, fmt.Err("client", "not", "found")
 	}
 
-	// 3. Validate staff
+	// 3. Validar staff
 	staffExists, err := m.staff.StaffExists(cmd.TenantId, empSvcCfg.StaffId)
 	if err != nil {
 		return Reservation{}, err
@@ -347,7 +370,7 @@ func (m *Module) CreateReservation(cmd CreateReservationCmd) (Reservation, error
 		return Reservation{}, fmt.Err("staff", "not", "found")
 	}
 
-	// 4. Validate service
+	// 4. Validar servicio
 	serviceExists, err := m.catalog.ServiceExists(cmd.TenantId, empSvcCfg.ServiceId)
 	if err != nil {
 		return Reservation{}, err
@@ -356,11 +379,11 @@ func (m *Module) CreateReservation(cmd CreateReservationCmd) (Reservation, error
 		return Reservation{}, fmt.Err("service", "not", "found")
 	}
 
-	// 5. Check availability
-	// Get availability for the target day (midnight UTC)
+	// 5. Verificar disponibilidad
+	// Obtener disponibilidad para el día objetivo (medianoche UTC)
 	targetDay := tinytime.MidnightUTC(cmd.SlotStartUtc)
 
-	// Broaden the search by one day on each side to account for timezone boundary differences
+	// Ampliar la búsqueda un día a cada lado para cubrir diferencias de límite de zona horaria
 	fromDay := targetDay - 86400
 	toDay := targetDay + 86400
 
@@ -404,7 +427,7 @@ func (m *Module) CreateReservation(cmd CreateReservationCmd) (Reservation, error
 			RescheduledFromId:       cmd.RescheduledFromId,
 			Notes:                   cmd.Notes,
 			UpdatedAt:               now,
-			UpdatedBy:               cmd.CreatorUserId, // Using CreatorUserId as the ActorID at creation
+			UpdatedBy:               cmd.CreatorUserId, // Usar CreatorUserId como ActorID al momento de la creación
 			Revision:                0,
 		}
 
@@ -428,7 +451,7 @@ func (m *Module) CreateReservation(cmd CreateReservationCmd) (Reservation, error
 
 		newReservation.Id = m.ids.NewID()
 
-		// Do an in-tx insert instead of repo.InsertReservation which uses db.Create
+		// Hacer un insert dentro de la tx en vez de repo.InsertReservation, que usa db.Create
 		err = tx.Create(&newReservation)
 		if err != nil {
 			return err
@@ -527,7 +550,7 @@ func (m *Module) ChangeReservationStatus(cmd ChangeStatusCmd) error {
 	}
 
 	if m.pub != nil && domainEvent != "" {
-		// fetch updated
+		// obtener actualizado
 		updated, _ := m.repo.GetReservation(cmd.Id)
 		m.pub.Publish(events.Event{Topic: domainEvent, Payload: &updated})
 	}

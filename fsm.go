@@ -2,60 +2,65 @@ package appointmentbooking
 
 import "github.com/tinywasm/fmt"
 
-// States
+// Estados
 const (
 	StatusPending     = "PENDING"
 	StatusConfirmed   = "CONFIRMED"
 	StatusCancelled   = "CANCELLED"
 	StatusCompleted   = "COMPLETED"
 	StatusNoShow      = "NO_SHOW"
-	StatusExpired     = "EXPIRED"     // Unpaid reservation that timed out (trigger: external scheduler via MCP)
-	StatusRescheduled = "RESCHEDULED" // Original reservation superseded by a new one (audit trail)
+	StatusExpired     = "EXPIRED"     // reserva no pagada que expiró (disparador: scheduler externo vía MCP)
+	StatusRescheduled = "RESCHEDULED" // reserva original reemplazada por una nueva (registro de auditoría)
 )
 
-// Events
+// Eventos
 const (
 	EventConfirm    = "CONFIRM"
 	EventCancel     = "CANCEL"
 	EventComplete   = "COMPLETE"
 	EventNoShow     = "NO_SHOW_EVENT"
 	EventExpire     = "EXPIRE"
-	EventReschedule = "RESCHEDULE" // Marks original as RESCHEDULED; new reservation created atomically
+	EventReschedule = "RESCHEDULE" // marca la original como RESCHEDULED; la nueva reserva se crea atómicamente
 )
 
-// transitions[currentState][event] = nextState
-var transitions = map[string]map[string]string{
-	StatusPending: {
-		EventConfirm:    StatusConfirmed,
-		EventCancel:     StatusCancelled,
-		EventExpire:     StatusExpired,
-		EventReschedule: StatusRescheduled,
-	},
-	StatusConfirmed: {
-		EventCancel:     StatusCancelled,
-		EventComplete:   StatusCompleted,
-		EventNoShow:     StatusNoShow,
-		EventReschedule: StatusRescheduled,
-	},
-	// CANCELLED, COMPLETED, NO_SHOW, EXPIRED, RESCHEDULED are terminal — no outgoing transitions
+// transition es una fila de la tabla de transiciones FSM: (estado actual, evento) -> estado siguiente.
+// Slice, no map — la regla "cero map" de AGENTS.md no tiene excepciones; esta tabla tiene 9 filas,
+// un scan lineal no cuesta nada medible.
+type transition struct {
+	From  string
+	Event string
+	To    string
 }
 
-// ErrInvalidTransition is returned when a transition is not allowed.
+var transitions = []transition{
+	{StatusPending, EventConfirm, StatusConfirmed},
+	{StatusPending, EventCancel, StatusCancelled},
+	{StatusPending, EventExpire, StatusExpired},
+	{StatusPending, EventReschedule, StatusRescheduled},
+	{StatusConfirmed, EventCancel, StatusCancelled},
+	{StatusConfirmed, EventComplete, StatusCompleted},
+	{StatusConfirmed, EventNoShow, StatusNoShow},
+	{StatusConfirmed, EventReschedule, StatusRescheduled},
+	// CANCELLED, COMPLETED, NO_SHOW, EXPIRED, RESCHEDULED son terminales — sin transiciones salientes
+}
+
+// ErrInvalidTransition se devuelve cuando una transición no está permitida.
 var ErrInvalidTransition = fmt.Err("invalid", "transition")
 
-// Transition returns the next state or an error if the transition is invalid.
+// Transition devuelve el siguiente estado, o un error si la transición no es válida.
 func Transition(current, event string) (string, error) {
 	if IsTerminal(current) {
 		return "", ErrInvalidTransition
 	}
-	nextState, ok := transitions[current][event]
-	if !ok {
-		return "", ErrInvalidTransition
+	for _, t := range transitions {
+		if t.From == current && t.Event == event {
+			return t.To, nil
+		}
 	}
-	return nextState, nil
+	return "", ErrInvalidTransition
 }
 
-// IsTerminal returns true if the status has no outgoing transitions.
+// IsTerminal devuelve true si el estado no tiene transiciones salientes.
 func IsTerminal(status string) bool {
 	switch status {
 	case StatusCancelled, StatusCompleted, StatusNoShow, StatusExpired, StatusRescheduled:
