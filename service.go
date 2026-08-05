@@ -1,12 +1,11 @@
 package appointmentbooking
 
 import (
-	tinyctx "github.com/tinywasm/context"
-
+	"github.com/tinywasm/events"
 	"github.com/tinywasm/fmt"
+	"github.com/tinywasm/model"
 	"github.com/tinywasm/orm"
 	tinytime "github.com/tinywasm/time"
-	"github.com/tinywasm/unixid"
 )
 
 var (
@@ -27,87 +26,88 @@ const (
 
 // StaffReader verifies a staff member exists and belongs to the tenant.
 type StaffReader interface {
-	StaffExists(tenantID, staffID string) (bool, error)
+	StaffExists(tenantId, staffId string) (bool, error)
 }
 
 // CatalogReader verifies a service exists and belongs to the tenant.
 type CatalogReader interface {
-	ServiceExists(tenantID, serviceID string) (bool, error)
+	ServiceExists(tenantId, serviceId string) (bool, error)
 }
 
 // DirectoryReader verifies a client exists and belongs to the tenant.
 type DirectoryReader interface {
-	ClientExists(tenantID, clientID string) (bool, error)
-}
-
-// EventPublisher delivers domain events to other modules or infrastructure.
-type EventPublisher interface {
-	Publish(ctx *tinyctx.Context, event string, payload any) error
+	ClientExists(tenantId, clientId string) (bool, error)
 }
 
 type SchedulingService interface {
 	// Calendar management
-	UpsertCalendarConfig(ctx *tinyctx.Context, cfg WorkCalendarConfig) error
-	UpsertWeeklyCalendar(ctx *tinyctx.Context, cal WorkCalendarWeekly) error
-	AddException(ctx *tinyctx.Context, exc WorkCalendarException) error
-	RemoveException(ctx *tinyctx.Context, tenantID, exceptionID string) error
+	UpsertCalendarConfig(cfg WorkCalendarConfig) error
+	UpsertWeeklyCalendar(cal WorkCalendarWeekly) error
+	AddException(exc WorkCalendarException) error
+	RemoveException(tenantId, exceptionId string) error
 
 	// Availability
-	ListAvailability(ctx *tinyctx.Context, tenantID, staffID, configID string, from, to int64) ([]TimeSlot, error)
+	ListAvailability(tenantId, staffId, configId string, from, to int64) ([]TimeSlot, error)
 
 	// Reservations
-	CreateReservation(ctx *tinyctx.Context, cmd CreateReservationCmd) (Reservation, error)
-	GetReservation(ctx *tinyctx.Context, tenantID, id string) (Reservation, error)
-	ListReservationsByStaff(ctx *tinyctx.Context, tenantID, staffID string, from, to int64) ([]Reservation, error)
-	ListReservationsByClient(ctx *tinyctx.Context, tenantID, clientID string) ([]Reservation, error)
-	ChangeReservationStatus(ctx *tinyctx.Context, cmd ChangeStatusCmd) error
-	ExpirePendingReservations(ctx *tinyctx.Context, tenantID string, before int64) (int, error)
+	CreateReservation(cmd CreateReservationCmd) (Reservation, error)
+	GetReservation(tenantId, id string) (Reservation, error)
+	ListReservationsByStaff(tenantId, staffId string, from, to int64) ([]Reservation, error)
+	ListReservationsByClient(tenantId, clientId string) ([]Reservation, error)
+	ChangeReservationStatus(cmd ChangeStatusCmd) error
+	ExpirePendingReservations(tenantId string, before int64) (int, error)
 }
 
 type CreateReservationCmd struct {
-	TenantID                string
-	ClientID                string
-	CreatorUserID           string
-	EmployeeServiceConfigID string
-	SlotStartUTC            int64
+	TenantId                string
+	ClientId                string
+	CreatorUserId           string
+	EmployeeServiceConfigId string
+	SlotStartUtc            int64
 	Notes                   string
-	RescheduledFromID       string
+	RescheduledFromId       string
 }
 
 type ChangeStatusCmd struct {
-	TenantID  string
-	ID        string
+	TenantId  string
+	Id        string
 	Event     string
-	ActorID   string
-	PaymentID string
+	ActorId   string
+	PaymentId string
 	Revision  int
 }
 
-type schedulingService struct {
+type Module struct {
 	db        *orm.DB
 	repo      *Repository
+	ids       model.IDGenerator
 	staff     StaffReader
 	catalog   CatalogReader
 	directory DirectoryReader
-	pub       EventPublisher
+	pub       events.Publisher
 }
 
 type Deps struct {
 	Staff     StaffReader
 	Catalog   CatalogReader
 	Directory DirectoryReader
-	Publisher EventPublisher
+	IDs       model.IDGenerator // requerido
+	Publisher events.Publisher  // opcional — nil desactiva
 }
 
-func New(db *orm.DB, deps Deps) (SchedulingService, error) {
-	repo, err := NewRepository(db)
+func New(db *orm.DB, deps Deps) (*Module, error) {
+	if deps.IDs == nil {
+		return nil, fmt.Err("appointment_booking: Deps.IDs is required")
+	}
+	repo, err := NewRepository(db, deps.IDs)
 	if err != nil {
 		return nil, err
 	}
 
-	return &schedulingService{
+	return &Module{
 		db:        db,
 		repo:      repo,
+		ids:       deps.IDs,
 		staff:     deps.Staff,
 		catalog:   deps.Catalog,
 		directory: deps.Directory,
@@ -115,13 +115,15 @@ func New(db *orm.DB, deps Deps) (SchedulingService, error) {
 	}, nil
 }
 
-func (s *schedulingService) UpsertCalendarConfig(ctx *tinyctx.Context, cfg WorkCalendarConfig) error {
-	return s.repo.UpsertCalendarConfig(cfg)
+var _ SchedulingService = (*Module)(nil)
+
+func (m *Module) UpsertCalendarConfig(cfg WorkCalendarConfig) error {
+	return m.repo.UpsertCalendarConfig(cfg)
 }
 
-func (s *schedulingService) UpsertWeeklyCalendar(ctx *tinyctx.Context, cal WorkCalendarWeekly) error {
+func (m *Module) UpsertWeeklyCalendar(cal WorkCalendarWeekly) error {
 	// Must check if CalendarConfig exists first
-	_, err := s.repo.GetCalendarConfig(cal.TenantID, cal.StaffID)
+	_, err := m.repo.GetCalendarConfig(cal.TenantId, cal.StaffId)
 	if err != nil {
 		if err == ErrNotFound {
 			return ErrCalendarConfigNotFound
@@ -129,15 +131,15 @@ func (s *schedulingService) UpsertWeeklyCalendar(ctx *tinyctx.Context, cal WorkC
 		return err
 	}
 
-	return s.repo.UpsertWeeklyCalendar(cal)
+	return m.repo.UpsertWeeklyCalendar(cal)
 }
 
-func (s *schedulingService) AddException(ctx *tinyctx.Context, exc WorkCalendarException) error {
-	return s.repo.InsertException(exc)
+func (m *Module) AddException(exc WorkCalendarException) error {
+	return m.repo.InsertException(exc)
 }
 
-func (s *schedulingService) RemoveException(ctx *tinyctx.Context, tenantID, exceptionID string) error {
-	return s.repo.DeleteException(tenantID, exceptionID)
+func (m *Module) RemoveException(tenantId, exceptionId string) error {
+	return m.repo.DeleteException(tenantId, exceptionId)
 }
 
 // LocalIntToUnixUTC interprets localInt as minutes from midnight on the given date (UTC midnight) in the given tz.
@@ -145,9 +147,9 @@ func LocalIntToUnixUTC(date int64, localInt int, tz string) int64 {
 	return tinytime.LocalMinutesToUnixUTC(date, localInt, tz)
 }
 
-func (s *schedulingService) ListAvailability(ctx *tinyctx.Context, tenantID, staffID, configID string, from, to int64) ([]TimeSlot, error) {
+func (m *Module) ListAvailability(tenantId, staffId, configId string, from, to int64) ([]TimeSlot, error) {
 	// 1. Load WorkCalendarConfig
-	cfg, err := s.repo.GetCalendarConfig(tenantID, staffID)
+	cfg, err := m.repo.GetCalendarConfig(tenantId, staffId)
 	if err != nil {
 		if err == ErrNotFound {
 			return nil, ErrCalendarConfigNotFound
@@ -159,7 +161,7 @@ func (s *schedulingService) ListAvailability(ctx *tinyctx.Context, tenantID, sta
 	}
 
 	// 2. Load WorkCalendarWeekly
-	weeklies, err := s.repo.ListWeeklyCalendar(tenantID, staffID)
+	weeklies, err := m.repo.ListWeeklyCalendar(tenantId, staffId)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +173,7 @@ func (s *schedulingService) ListAvailability(ctx *tinyctx.Context, tenantID, sta
 	}
 
 	// 3. Load WorkCalendarException
-	exceptions, err := s.repo.ListExceptions(tenantID, staffID, from, to)
+	exceptions, err := m.repo.ListExceptions(tenantId, staffId, from, to)
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +183,7 @@ func (s *schedulingService) ListAvailability(ctx *tinyctx.Context, tenantID, sta
 	}
 
 	// 4. Load existing Reservations
-	reservations, err := s.repo.ListReservationsByStaff(tenantID, staffID, from, to)
+	reservations, err := m.repo.ListReservationsByStaff(tenantId, staffId, from, to)
 	if err != nil {
 		return nil, err
 	}
@@ -193,11 +195,11 @@ func (s *schedulingService) ListAvailability(ctx *tinyctx.Context, tenantID, sta
 	}
 
 	// 5. Load EmployeeServiceConfig
-	empSvcCfg, err := s.repo.GetEmployeeServiceConfig(configID)
+	empSvcCfg, err := m.repo.GetEmployeeServiceConfig(configId)
 	if err != nil {
 		return nil, err
 	}
-	if !empSvcCfg.IsActive || empSvcCfg.TenantID != tenantID {
+	if !empSvcCfg.IsActive || empSvcCfg.TenantId != tenantId {
 		return []TimeSlot{}, nil
 	}
 
@@ -308,7 +310,7 @@ func (s *schedulingService) ListAvailability(ctx *tinyctx.Context, tenantID, sta
 			if hasOverlap {
 				curr = resEnd
 			} else {
-				slots = append(slots, TimeSlot{StartUTC: curr, EndUTC: end})
+				slots = append(slots, TimeSlot{StartUtc: curr, EndUtc: end})
 				curr += int64(durationMin * 60)
 			}
 		}
@@ -317,18 +319,18 @@ func (s *schedulingService) ListAvailability(ctx *tinyctx.Context, tenantID, sta
 	return slots, nil
 }
 
-func (s *schedulingService) CreateReservation(ctx *tinyctx.Context, cmd CreateReservationCmd) (Reservation, error) {
+func (m *Module) CreateReservation(cmd CreateReservationCmd) (Reservation, error) {
 	// 1. Load EmployeeServiceConfig
-	empSvcCfg, err := s.repo.GetEmployeeServiceConfig(cmd.EmployeeServiceConfigID)
+	empSvcCfg, err := m.repo.GetEmployeeServiceConfig(cmd.EmployeeServiceConfigId)
 	if err != nil {
 		return Reservation{}, err
 	}
-	if !empSvcCfg.IsActive || empSvcCfg.TenantID != cmd.TenantID {
+	if !empSvcCfg.IsActive || empSvcCfg.TenantId != cmd.TenantId {
 		return Reservation{}, ErrNotFound
 	}
 
 	// 2. Validate client
-	clientExists, err := s.directory.ClientExists(cmd.TenantID, cmd.ClientID)
+	clientExists, err := m.directory.ClientExists(cmd.TenantId, cmd.ClientId)
 	if err != nil {
 		return Reservation{}, err
 	}
@@ -337,7 +339,7 @@ func (s *schedulingService) CreateReservation(ctx *tinyctx.Context, cmd CreateRe
 	}
 
 	// 3. Validate staff
-	staffExists, err := s.staff.StaffExists(cmd.TenantID, empSvcCfg.StaffID)
+	staffExists, err := m.staff.StaffExists(cmd.TenantId, empSvcCfg.StaffId)
 	if err != nil {
 		return Reservation{}, err
 	}
@@ -346,7 +348,7 @@ func (s *schedulingService) CreateReservation(ctx *tinyctx.Context, cmd CreateRe
 	}
 
 	// 4. Validate service
-	serviceExists, err := s.catalog.ServiceExists(cmd.TenantID, empSvcCfg.ServiceID)
+	serviceExists, err := m.catalog.ServiceExists(cmd.TenantId, empSvcCfg.ServiceId)
 	if err != nil {
 		return Reservation{}, err
 	}
@@ -356,20 +358,20 @@ func (s *schedulingService) CreateReservation(ctx *tinyctx.Context, cmd CreateRe
 
 	// 5. Check availability
 	// Get availability for the target day (midnight UTC)
-	targetDay := tinytime.MidnightUTC(cmd.SlotStartUTC)
+	targetDay := tinytime.MidnightUTC(cmd.SlotStartUtc)
 
 	// Broaden the search by one day on each side to account for timezone boundary differences
 	fromDay := targetDay - 86400
 	toDay := targetDay + 86400
 
-	slots, err := s.ListAvailability(ctx, cmd.TenantID, empSvcCfg.StaffID, empSvcCfg.ID, fromDay, toDay)
+	slots, err := m.ListAvailability(cmd.TenantId, empSvcCfg.StaffId, empSvcCfg.Id, fromDay, toDay)
 	if err != nil {
 		return Reservation{}, err
 	}
 
 	isAvailable := false
 	for _, slot := range slots {
-		if slot.StartUTC == cmd.SlotStartUTC {
+		if slot.StartUtc == cmd.SlotStartUtc {
 			isAvailable = true
 			break
 		}
@@ -381,33 +383,33 @@ func (s *schedulingService) CreateReservation(ctx *tinyctx.Context, cmd CreateRe
 	var newReservation Reservation
 	var originalReservation *Reservation
 
-	err = s.db.Tx(func(tx *orm.DB) error {
+	err = m.db.Tx(func(tx *orm.DB) error {
 		now := tinytime.Now()
 
 		newReservation = Reservation{
-			TenantID:                cmd.TenantID,
-			ClientID:                cmd.ClientID,
-			CreatorUserID:           cmd.CreatorUserID,
-			EmployeeServiceConfigID: cmd.EmployeeServiceConfigID,
-			StaffIDSnapshot:         empSvcCfg.StaffID,
-			ServiceIDSnapshot:       empSvcCfg.ServiceID,
+			TenantId:                cmd.TenantId,
+			ClientId:                cmd.ClientId,
+			CreatorUserId:           cmd.CreatorUserId,
+			EmployeeServiceConfigId: cmd.EmployeeServiceConfigId,
+			StaffIdsnapshot:         empSvcCfg.StaffId,
+			ServiceIdsnapshot:       empSvcCfg.ServiceId,
 			DurationMinSnapshot:     empSvcCfg.DurationMin,
 			PriceSnapshot:           empSvcCfg.PriceOverride,
 			CurrencySnapshot:        "CLP", // default
 			ReservationDate:         targetDay,
-			ReservationTime:         cmd.SlotStartUTC,
-			LocalStringDate:         tinytime.FormatDate(cmd.SlotStartUTC * 1000000000),
-			LocalStringTime:         tinytime.FormatTime(cmd.SlotStartUTC * 1000000000),
+			ReservationTime:         cmd.SlotStartUtc,
+			LocalStringDate:         tinytime.FormatDate(cmd.SlotStartUtc * 1000000000),
+			LocalStringTime:         tinytime.FormatTime(cmd.SlotStartUtc * 1000000000),
 			Status:                  StatusPending,
-			RescheduledFromID:       cmd.RescheduledFromID,
+			RescheduledFromId:       cmd.RescheduledFromId,
 			Notes:                   cmd.Notes,
 			UpdatedAt:               now,
-			UpdatedBy:               cmd.CreatorUserID, // Using CreatorUserID as the ActorID at creation
+			UpdatedBy:               cmd.CreatorUserId, // Using CreatorUserId as the ActorID at creation
 			Revision:                0,
 		}
 
-		if cmd.RescheduledFromID != "" {
-			orig, err := s.repo.GetReservationTx(tx, cmd.TenantID, cmd.RescheduledFromID)
+		if cmd.RescheduledFromId != "" {
+			orig, err := m.repo.GetReservationTx(tx, cmd.TenantId, cmd.RescheduledFromId)
 			if err != nil {
 				return err
 			}
@@ -418,18 +420,13 @@ func (s *schedulingService) CreateReservation(ctx *tinyctx.Context, cmd CreateRe
 				return err
 			}
 
-			err = s.repo.UpdateReservationStatusTx(tx, orig.ID, StatusRescheduled, cmd.CreatorUserID, now, orig.Revision)
+			err = m.repo.UpdateReservationStatusTx(tx, orig.Id, StatusRescheduled, cmd.CreatorUserId, now, orig.Revision)
 			if err != nil {
 				return err
 			}
 		}
 
-		idHandler, err := unixid.NewUnixID()
-		if err != nil {
-			return err
-		}
-		// ensure a unique ID by using the generated nanosecond one properly
-		newReservation.ID = idHandler.NewID()
+		newReservation.Id = m.ids.NewID()
 
 		// Do an in-tx insert instead of repo.InsertReservation which uses db.Create
 		err = tx.Create(&newReservation)
@@ -444,41 +441,41 @@ func (s *schedulingService) CreateReservation(ctx *tinyctx.Context, cmd CreateRe
 		return Reservation{}, err
 	}
 
-	if s.pub != nil {
-		s.pub.Publish(ctx, EventReservationCreated, newReservation)
+	if m.pub != nil {
+		m.pub.Publish(events.Event{Topic: EventReservationCreated, Payload: &newReservation})
 		if originalReservation != nil {
-			s.pub.Publish(ctx, EventReservationRescheduled, *originalReservation)
+			m.pub.Publish(events.Event{Topic: EventReservationRescheduled, Payload: originalReservation})
 		}
 	}
 
 	return newReservation, nil
 }
 
-func (s *schedulingService) GetReservation(ctx *tinyctx.Context, tenantID, id string) (Reservation, error) {
-	res, err := s.repo.GetReservation(id)
+func (m *Module) GetReservation(tenantId, id string) (Reservation, error) {
+	res, err := m.repo.GetReservation(id)
 	if err != nil {
 		return Reservation{}, err
 	}
-	if res.TenantID != tenantID {
+	if res.TenantId != tenantId {
 		return Reservation{}, ErrNotFound
 	}
 	return res, nil
 }
 
-func (s *schedulingService) ListReservationsByStaff(ctx *tinyctx.Context, tenantID, staffID string, from, to int64) ([]Reservation, error) {
-	return s.repo.ListReservationsByStaff(tenantID, staffID, from, to)
+func (m *Module) ListReservationsByStaff(tenantId, staffId string, from, to int64) ([]Reservation, error) {
+	return m.repo.ListReservationsByStaff(tenantId, staffId, from, to)
 }
 
-func (s *schedulingService) ListReservationsByClient(ctx *tinyctx.Context, tenantID, clientID string) ([]Reservation, error) {
-	return s.repo.ListReservationsByClient(tenantID, clientID)
+func (m *Module) ListReservationsByClient(tenantId, clientId string) ([]Reservation, error) {
+	return m.repo.ListReservationsByClient(tenantId, clientId)
 }
 
-func (s *schedulingService) ChangeReservationStatus(ctx *tinyctx.Context, cmd ChangeStatusCmd) error {
-	current, err := s.repo.GetReservation(cmd.ID)
+func (m *Module) ChangeReservationStatus(cmd ChangeStatusCmd) error {
+	current, err := m.repo.GetReservation(cmd.Id)
 	if err != nil {
 		return err
 	}
-	if current.TenantID != cmd.TenantID {
+	if current.TenantId != cmd.TenantId {
 		return ErrNotFound
 	}
 
@@ -487,12 +484,12 @@ func (s *schedulingService) ChangeReservationStatus(ctx *tinyctx.Context, cmd Ch
 		return err
 	}
 
-	err = s.db.Tx(func(tx *orm.DB) error {
+	err = m.db.Tx(func(tx *orm.DB) error {
 		now := tinytime.Now()
 
-		if cmd.Event == EventConfirm && cmd.PaymentID != "" {
+		if cmd.Event == EventConfirm && cmd.PaymentId != "" {
 			got := &Reservation{}
-			qb := tx.Query(got).Where(Reservation_.ID).Eq(cmd.ID)
+			qb := tx.Query(got).Where(Reservation_.Id).Eq(cmd.Id)
 			gotRes, err := ReadOneReservation(qb, got)
 			if err != nil {
 				return err
@@ -501,14 +498,14 @@ func (s *schedulingService) ChangeReservationStatus(ctx *tinyctx.Context, cmd Ch
 				return ErrConflict
 			}
 			gotRes.Status = nextState
-			gotRes.UpdatedBy = cmd.ActorID
+			gotRes.UpdatedBy = cmd.ActorId
 			gotRes.UpdatedAt = now
-			gotRes.PaymentID = cmd.PaymentID
+			gotRes.PaymentId = cmd.PaymentId
 			gotRes.Revision++
-			return tx.Update(gotRes, orm.Eq(Reservation_.ID, gotRes.ID)) // Update does a full update based on PK
+			return tx.Update(gotRes, orm.Eq(Reservation_.Id, gotRes.Id), orm.Eq(Reservation_.TenantId, gotRes.TenantId))
 		}
 
-		return s.repo.UpdateReservationStatusTx(tx, cmd.ID, nextState, cmd.ActorID, now, int64(cmd.Revision))
+		return m.repo.UpdateReservationStatusTx(tx, cmd.Id, nextState, cmd.ActorId, now, int64(cmd.Revision))
 	})
 
 	if err != nil {
@@ -529,19 +526,19 @@ func (s *schedulingService) ChangeReservationStatus(ctx *tinyctx.Context, cmd Ch
 		domainEvent = EventReservationExpired
 	}
 
-	if s.pub != nil && domainEvent != "" {
+	if m.pub != nil && domainEvent != "" {
 		// fetch updated
-		updated, _ := s.repo.GetReservation(cmd.ID)
-		s.pub.Publish(ctx, domainEvent, updated)
+		updated, _ := m.repo.GetReservation(cmd.Id)
+		m.pub.Publish(events.Event{Topic: domainEvent, Payload: &updated})
 	}
 
 	return nil
 }
 
-func (s *schedulingService) ExpirePendingReservations(ctx *tinyctx.Context, tenantID string, before int64) (int, error) {
+func (m *Module) ExpirePendingReservations(tenantId string, before int64) (int, error) {
 	proxy := &Reservation{}
-	qb := s.db.Query(proxy).
-		Where(Reservation_.TenantID).Eq(tenantID).
+	qb := m.db.Query(proxy).
+		Where(Reservation_.TenantId).Eq(tenantId).
 		Where(Reservation_.Status).Eq(StatusPending).
 		Where(Reservation_.ReservationTime).Lt(before)
 
@@ -554,12 +551,12 @@ func (s *schedulingService) ExpirePendingReservations(ctx *tinyctx.Context, tena
 	}
 
 	expiredCount := 0
-	for _, row := range *rows {
-		err := s.ChangeReservationStatus(ctx, ChangeStatusCmd{
-			TenantID: tenantID,
-			ID:       row.ID,
+	for _, row := range rows {
+		err := m.ChangeReservationStatus(ChangeStatusCmd{
+			TenantId: tenantId,
+			Id:       row.Id,
 			Event:    EventExpire,
-			ActorID:  "system",
+			ActorId:  "system",
 			Revision: int(row.Revision),
 		})
 		if err != nil {
