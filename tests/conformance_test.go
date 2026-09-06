@@ -3,10 +3,10 @@ package tests
 import (
 	"testing"
 
-	"webtyp.com/model"
-	"webtyp.com/view"
-	"webtyp.com/view/conformance"
 	ab "github.com/veltylabs/appointment_booking"
+	"webtyp.com/json"
+	"webtyp.com/router/mock"
+	"webtyp.com/view"
 )
 
 func TestViewConformance(t *testing.T) {
@@ -28,14 +28,12 @@ func TestViewConformance(t *testing.T) {
 
 	list := ab.ReservationList{r1, r2}
 
-	caller := &conformance.FakeCaller{
-		Reply: func(op string, into model.Decodable) {
-			if op == ab.OpListReservationsByStaff {
-				target := into.(*ab.ReservationList)
-				*target = list
-			}
-		},
+	var body []byte
+	if err := json.Encode(&list, &body); err != nil {
+		t.Fatalf("encode canned list: %v", err)
 	}
+
+	caller := &mock.Caller{CannedResult: body}
 
 	pres := ab.NewView(caller, "t1", "staff-1")
 

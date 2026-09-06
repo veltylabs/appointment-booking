@@ -1,7 +1,7 @@
 package appointmentbooking
 
 import (
-	"webtyp.com/form/input"
+	"webtyp.com/input"
 	"webtyp.com/model"
 )
 
