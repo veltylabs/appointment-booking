@@ -1,6 +1,6 @@
 package appointmentbooking
 
-import "github.com/tinywasm/fmt"
+import "webtyp.com/fmt"
 
 // Estados
 const (

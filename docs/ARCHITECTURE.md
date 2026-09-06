@@ -46,8 +46,8 @@ Key decisions:
    internal `*Repository`) and calls ORM functions from `model_orm.go`. There is no intermediate
    `ReservationStore`, `CalendarStore`, or `ConfigStore` **interface** — `Repository` is a plain
    struct, not an abstraction boundary a test could swap for a mock. This keeps the internal boundary
-   thin and lets the module's own tests exercise the real `github.com/tinywasm/orm` query builder
-   against `github.com/tinywasm/storage/mem` — the in-memory reference backend — catching real
+   thin and lets the module's own tests exercise the real `github.com/webtyp/orm` query builder
+   against `github.com/webtyp/storage/mem` — the in-memory reference backend — catching real
    constraint and concurrency bugs (optimistic-lock conflicts, uniqueness violations) instead of
    hiding them behind mocks, with no concrete database driver in the module's dependency graph at
    all. Only cross-module interfaces (`StaffReader`, `CatalogReader`, `DirectoryReader`) and the
@@ -57,7 +57,7 @@ Key decisions:
 
 4. **Snapshotting:** Price, currency, duration, staff ID, and service ID are snapshotted at reservation creation. Downstream changes to catalog or staff data do not alter existing reservations.
 
-5. **Local Integer Time + IANA Timezone (Single Source of Truth):** Working hours in `WorkCalendarWeekly` are stored as local integers (e.g., `900 = 09:00`). The IANA timezone is stored exclusively in `WorkCalendarConfig` (one row per staff) — `WorkCalendarWeekly` and `WorkCalendarException` do not carry timezone fields. This prevents per-row timezone inconsistency by construction. The `ListAvailability` algorithm loads `WorkCalendarConfig` first to obtain the timezone, then converts local boundaries to Unix UTC using `github.com/tinywasm/time` (imported directly — no local fork, see `docs/PLAN.md` Stage 0). This design ensures recurring schedules remain correct across DST transitions.
+5. **Local Integer Time + IANA Timezone (Single Source of Truth):** Working hours in `WorkCalendarWeekly` are stored as local integers (e.g., `900 = 09:00`). The IANA timezone is stored exclusively in `WorkCalendarConfig` (one row per staff) — `WorkCalendarWeekly` and `WorkCalendarException` do not carry timezone fields. This prevents per-row timezone inconsistency by construction. The `ListAvailability` algorithm loads `WorkCalendarConfig` first to obtain the timezone, then converts local boundaries to Unix UTC using `github.com/webtyp/time` (imported directly — no local fork, see `docs/PLAN.md` Stage 0). This design ensures recurring schedules remain correct across DST transitions.
 
 6. **Optimistic Concurrency:** `Reservation.revision` is incremented on each status update. `UpdateReservationStatus` enforces `WHERE revision = N` — a mismatch returns `ErrConflict`, preventing silent overwrites.
 
@@ -74,15 +74,15 @@ This module does **not** implement authorization or role-based access control. I
 
 ## 6. Event Publishing & Inter-Module Communication
 
-This module communicates outbound via the injected `github.com/tinywasm/events` `events.Publisher` —
+This module communicates outbound via the injected `github.com/webtyp/events` `events.Publisher` —
 **not** a self-declared interface. Before the harness migration this module declared its own local
 `EventPublisher interface { Publish(ctx *tinyctx.Context, event string, payload any) error }`, which
 duplicated the ecosystem's `events.Publisher` contract and additionally depended on
-`github.com/tinywasm/context` (not on this module's import whitelist — see `AGENTS.md`). After the
+`github.com/webtyp/context` (not on this module's import whitelist — see `AGENTS.md`). After the
 migration (`docs/PLAN.md` Stage 2), `Deps.Publisher` is `events.Publisher` directly:
 
 ```go
-type Publisher interface { Publish(e Event) } // github.com/tinywasm/events
+type Publisher interface { Publish(e Event) } // github.com/webtyp/events
 type Event struct { Topic string; Payload model.Encodable }
 ```
 
@@ -102,7 +102,7 @@ After each successful state mutation, the module publishes a domain event with a
 - Event publishing is **fire-and-forget** — `events.Publisher.Publish` has no error return; a
   broker-side failure is the broker's concern, never the module's.
 - Passing `nil` as `Deps.Publisher` safely disables events (useful in tests or CLI tools).
-- The concrete broker (in-process, `github.com/tinywasm/sse`, a queue adapter) is decided by the
+- The concrete broker (in-process, `github.com/webtyp/sse`, a queue adapter) is decided by the
   composition root, never by this module.
 
 ## 7. Transport, Identity, View — Composition Root

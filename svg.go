@@ -2,7 +2,7 @@
 
 package appointmentbooking
 
-import "github.com/tinywasm/svg/sprite"
+import "webtyp.com/svg/sprite"
 
 // IconSvg registra el ícono de marca del módulo. tinywasm/ssr lo extrae durante SSR y assetmin lo
 // inyecta inline en <body> — nunca se llama a mano.

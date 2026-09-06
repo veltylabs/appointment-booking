@@ -1,12 +1,12 @@
 package appointmentbooking
 
 import (
-	"github.com/tinywasm/events"
-	"github.com/tinywasm/fmt"
-	"github.com/tinywasm/model"
-	"github.com/tinywasm/orm"
-	"github.com/tinywasm/svg"
-	tinytime "github.com/tinywasm/time"
+	"webtyp.com/events"
+	"webtyp.com/fmt"
+	"webtyp.com/model"
+	"webtyp.com/orm"
+	"webtyp.com/svg"
+	tinytime "webtyp.com/time"
 )
 
 var (

@@ -1,10 +1,10 @@
 package appointmentbooking
 
 import (
-	"github.com/tinywasm/ddl"
-	"github.com/tinywasm/fmt"
-	"github.com/tinywasm/model"
-	"github.com/tinywasm/orm"
+	"webtyp.com/ddl"
+	"webtyp.com/fmt"
+	"webtyp.com/model"
+	"webtyp.com/orm"
 )
 
 // Errores sentinela a nivel de paquete

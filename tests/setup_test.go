@@ -3,9 +3,9 @@ package tests
 import (
 	"testing"
 
-	"github.com/tinywasm/fmt"
-	"github.com/tinywasm/orm"
-	tinytime "github.com/tinywasm/time"
+	"webtyp.com/fmt"
+	"webtyp.com/orm"
+	tinytime "webtyp.com/time"
 	ab "github.com/veltylabs/appointment_booking"
 )
 

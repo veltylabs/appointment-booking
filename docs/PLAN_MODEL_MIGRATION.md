@@ -2,7 +2,7 @@
 
 > This plan is dispatched via the CodeJob workflow. See skill: **agents-workflow**.
 
-✅ **Desbloqueado.** `github.com/tinywasm/model@v0.0.14` (con `orm@v0.9.28`) genera el helper
+✅ **Desbloqueado.** `github.com/webtyp/model@v0.0.14` (con `orm@v0.9.28`) genera el helper
 `<Struct>_.Campo` de forma **automática (always-on) para todo modelo con DB** — sin directiva. Ojo con
 el **casing puro** (`tenant_id`→`TenantId`, `client_id`→`ClientId`, `..._id`→`...Id`; ya no `...ID`)
 descrito en §5.
@@ -19,7 +19,7 @@ El ecosistema tinywasm invirtió la generación de modelos: se escribe una defin
 mismo comportamiento, mismas columnas/tabla, mismo JSON. Este módulo tiene 5 structs con rol DB y 12
 structs de transporte (args de handlers) sin rol DB.
 
-## 2. Contrato de `github.com/tinywasm/model` (inline)
+## 2. Contrato de `github.com/webtyp/model` (inline)
 
 `Field.Type` **no** es un literal de un enum — es la interfaz `Kind`. Se rellena llamando a un
 constructor (`model.Text()`, `model.Int()`, …), nunca asignando `model.FieldText` directamente:
@@ -82,7 +82,7 @@ type Definition struct {
 Mapeo fijo: `model.Text()`→`string`, `model.Int()`→`int64`, `model.Float()`→`float64`,
 `model.Bool()`→`bool`. Variable de definición debe llamarse `<Struct>Model`.
 
-**Ya no existe `Field.Widget`.** Un Kind con UI es un `Kind` de `github.com/tinywasm/form/input`
+**Ya no existe `Field.Widget`.** Un Kind con UI es un `Kind` de `github.com/webtyp/form/input`
 (p. ej. `input.Text()`). Este módulo **sí** usa widgets hoy — en los 12 structs de args, no en
 los 5 con rol DB (ver §4) — así que no basta con los Kinds base para todo el archivo.
 
@@ -289,8 +289,8 @@ No les inventes ninguno: preserva Kinds base (`model.X()`). Los 12 structs de ar
 package appointmentbooking
 
 import (
-	"github.com/tinywasm/form/input"
-	"github.com/tinywasm/model"
+	"github.com/webtyp/form/input"
+	"github.com/webtyp/model"
 )
 
 var EmployeeServiceConfigModel = model.Definition{
@@ -515,7 +515,7 @@ cualquier `form.New()` construido sobre ellos — el mismo defecto ya corregido 
 
 ## 5. Pasos
 
-> **Dependencias:** `go get github.com/tinywasm/model@v0.0.14 github.com/tinywasm/orm@v0.9.28 github.com/tinywasm/form@v0.2.15`
+> **Dependencias:** `go get github.com/webtyp/model@v0.0.14 github.com/webtyp/orm@v0.9.28 github.com/webtyp/form@v0.2.15`
 > (`model` directa nueva, antes solo se llegaba transitivamente vía `orm`; `form` ya era
 > dependencia directa (v0.2.0) — se bumpea para regenerar los widgets de §4).
 

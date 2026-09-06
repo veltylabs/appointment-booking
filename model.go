@@ -1,8 +1,8 @@
 package appointmentbooking
 
 import (
-	"github.com/tinywasm/form/input"
-	"github.com/tinywasm/model"
+	"webtyp.com/form/input"
+	"webtyp.com/model"
 )
 
 var EmployeeServiceConfigModel = model.Definition{

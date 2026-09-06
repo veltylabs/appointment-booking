@@ -1,9 +1,9 @@
 package tests
 
 import (
-	"github.com/tinywasm/events"
-	"github.com/tinywasm/fmt"
-	"github.com/tinywasm/model"
+	"webtyp.com/events"
+	"webtyp.com/fmt"
+	"webtyp.com/model"
 	ab "github.com/veltylabs/appointment_booking"
 )
 
